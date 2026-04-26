@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Coronado Nova"/>
+<title>Coronado Nova Realty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
+<style>
+/* ── RESET & ROOT ── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --navy:#0D1B2A;--navy2:#152235;--navy3:#1A2A3D;--navy4:#0F1E2E;
+  --gold:#C9A84C;--gold2:#E8C97A;--gold3:#F5DFA0;
+  --silver:#B8C5D0;--silver2:#D6E2EC;
+  --text:#F0EAD6;--muted:#8BA0B4;
+  --green:#5DCAA5;--amber:#F5C85A;--red:#F09595;--blue:#85B7EB;
+  --border:rgba(201,168,76,0.25);--border2:rgba(201,168,76,0.5);
+  --card:#1A2A3D;--card2:#0F1E2E;
+  --success-bg:rgba(93,202,165,0.15);--success-border:rgba(93,202,165,0.3);
+  --warn-bg:rgba(245,200,90,0.15);--warn-border:rgba(245,200,90,0.3);
+  --danger-bg:rgba(240,149,149,0.15);--danger-border:rgba(240,149,149,0.3);
+  --info-bg:rgba(133,183,235,0.15);--info-border:rgba(133,183,235,0.3);
+  --gold-bg:rgba(201,168,76,0.15);
+}
+html,body{height:100%;background:var(--navy);font-family:'Lato',sans-serif;color:var(--text);overflow:hidden}
+
+/* ── APP SHELL ── */
+#app{display:flex;flex-direction:column;height:100vh;max-width:430px;margin:0 auto;position:relative;background:var(--navy)}
+
+/* ── HEADER ── */
+.header{background:var(--navy2);border-bottom:0.5px solid var(--border);padding:env(safe-area-inset-top,12px) 16px 10px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.header-logo{display:flex;align-items:center;gap:10px}
+.logo-img{width:38px;height:38px;border-radius:50%;object-fit:cover;border:1px solid var(--border2)}
+.logo-fallback{width:38px;height:38px;border-radius:50%;background:var(--gold-bg);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:13px;color:var(--gold2);font-weight:600}
+.logo-name{font-family:'Cinzel',serif;font-size:12px;font-weight:600;color:var(--gold2);letter-spacing:.5px;line-height:1.2}
+.logo-sub{font-size:9px;letter-spacing:2px;color:var(--silver);text-transform:uppercase}
+.sync-btn{background:none;border:0.5px solid var(--border);border-radius:20px;color:var(--muted);font-size:11px;padding:4px 10px;cursor:pointer;font-family:'Lato',sans-serif;display:flex;align-items:center;gap:5px;transition:color 0.2s,border-color 0.2s}
+.sync-btn:active{color:var(--gold2);border-color:var(--border2)}
+.sync-icon{font-size:13px}
+
+/* ── SCREENS ── */
+.screens{flex:1;overflow:hidden;position:relative}
+.screen{position:absolute;inset:0;overflow-y:auto;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));display:none;-webkit-overflow-scrolling:touch}
+.screen.active{display:block}
+
+/* ── NAV ── */
+.nav-bar{background:var(--navy2);border-top:0.5px solid var(--border);display:flex;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-btn{flex:1;padding:10px 4px 8px;border:none;background:none;font-family:'Lato',sans-serif;font-size:9px;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;letter-spacing:.5px;text-transform:uppercase;transition:color 0.2s}
+.nav-btn.active{color:var(--gold2)}
+.nav-icon{font-size:16px;line-height:1}
+.nav-dot{width:4px;height:4px;border-radius:50%;background:transparent;transition:background 0.2s;margin-top:1px}
+.nav-btn.active .nav-dot{background:var(--gold2)}
+
+/* ── TOAST ── */
+#toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--navy3);border:0.5px solid var(--border2);border-radius:20px;padding:8px 18px;font-size:12px;color:var(--gold2);opacity:0;transition:opacity 0.3s,transform 0.3s;pointer-events:none;z-index:999;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── LOADING ── */
+#loading{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;gap:16px}
+#loading .logo-big{font-family:'Cinzel',serif;font-size:22px;color:var(--gold2);letter-spacing:1px}
+#loading .logo-small{font-size:11px;letter-spacing:3px;color:var(--muted);text-transform:uppercase}
+.spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--gold2);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── SETUP BANNER ── */
+#setup-banner{background:var(--gold-bg);border:0.5px solid var(--border2);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:none}
+#setup-banner.show{display:block}
+.setup-title{font-family:'Cinzel',serif;font-size:13px;color:var(--gold2);margin-bottom:4px}
+.setup-text{font-size:12px;color:var(--muted);line-height:1.6}
+.setup-input{width:100%;margin-top:8px;padding:8px 10px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;font-family:'Lato',sans-serif;outline:none}
+.setup-save{margin-top:8px;width:100%;padding:9px;background:rgba(201,168,76,0.12);border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px}
+
+/* ── PAGE HEADER ── */
+.page-head{margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start}
+.page-title{font-family:'Cinzel',serif;font-size:20px;font-weight:600;color:var(--gold2);letter-spacing:.5px}
+.page-sub{font-size:12px;color:var(--muted);margin-top:3px;letter-spacing:.3px}
+.page-add{background:none;border:0.5px solid var(--border2);border-radius:20px;color:var(--gold2);font-size:11px;padding:5px 12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px}
+
+/* ── STATS ── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat{background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:12px}
+.stat-label{font-size:10px;color:var(--muted);margin-bottom:5px;letter-spacing:.8px;text-transform:uppercase}
+.stat-value{font-family:'Cinzel',serif;font-size:22px;font-weight:600}
+.v-gold{color:var(--gold2)} .v-green{color:var(--green)} .v-amber{color:var(--amber)} .v-red{color:var(--red)} .v-blue{color:var(--blue)}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.card.urgent{border-color:rgba(240,149,149,0.4)}
+.card.expiring{border-color:rgba(245,200,90,0.4)}
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.card-title{font-family:'Cinzel',serif;font-size:13px;font-weight:600;color:var(--gold3);letter-spacing:.3px}
+.card-sub{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* ── BADGES ── */
+.badge{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.b-green{background:var(--success-bg);color:var(--green);border:0.5px solid var(--success-border)}
+.b-amber{background:var(--warn-bg);color:var(--amber);border:0.5px solid var(--warn-border)}
+.b-red{background:var(--danger-bg);color:var(--red);border:0.5px solid var(--danger-border)}
+.b-blue{background:var(--info-bg);color:var(--blue);border:0.5px solid var(--info-border)}
+.b-gold{background:var(--gold-bg);color:var(--gold2);border:0.5px solid var(--border)}
+.b-gray{background:rgba(184,197,208,0.1);color:var(--muted);border:0.5px solid rgba(184,197,208,0.2)}
+
+/* ── ROWS ── */
+.row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid rgba(255,255,255,0.05);font-size:12px}
+.row:last-child{border-bottom:none}
+.rl{color:var(--muted)} .rv{color:var(--text);font-weight:700}
+
+/* ── FILTER ── */
+.filter-row{display:flex;gap:7px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
+.filter-row::-webkit-scrollbar{display:none}
+.chip{padding:5px 12px;border-radius:20px;font-size:11px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;font-family:'Lato',sans-serif;letter-spacing:.4px;transition:all 0.15s}
+.chip.active{background:rgba(201,168,76,0.12);color:var(--gold2);border-color:var(--border2)}
+
+/* ── TENANT ROW ── */
+.t-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid rgba(255,255,255,0.05)}
+.t-row:last-child{border-bottom:none}
+.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:11px;font-weight:600;flex-shrink:0;border:0.5px solid var(--border)}
+.t-name{font-size:13px;font-weight:700;color:var(--text)}
+.t-detail{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* ── PROGRESS ── */
+.progress-bar{height:4px;border-radius:2px;background:rgba(255,255,255,0.08);margin-top:8px}
+.progress-fill{height:4px;border-radius:2px;background:var(--green)}
+
+/* ── EXPENSE ROW ── */
+.exp-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid rgba(255,255,255,0.05)}
+.exp-row:last-child{border-bottom:none}
+.exp-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+
+/* ── GOLD DIVIDER ── */
+.g-rule{display:flex;align-items:center;gap:8px;margin:14px 0 10px}
+.g-line{flex:1;height:0.5px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}
+.g-diamond{width:6px;height:6px;background:var(--gold);transform:rotate(45deg);flex-shrink:0}
+
+/* ── BUTTONS ── */
+.add-btn{width:100%;padding:11px;border:0.5px dashed var(--border);border-radius:10px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif;letter-spacing:.5px;transition:all 0.2s;margin-top:6px}
+.add-btn:active{border-color:var(--gold2);color:var(--gold2)}
+.ai-btn{width:100%;padding:11px;border:0.5px solid var(--border2);border-radius:10px;background:linear-gradient(135deg,rgba(201,168,76,0.08),rgba(201,168,76,0.03));color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px;display:flex;align-items:center;justify-content:center;gap:6px}
+
+/* ── INS TYPE ── */
+.ins-type{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+
+/* ── MODAL ── */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:flex-end;justify-content:center;z-index:500;backdrop-filter:blur(2px)}
+#modal-overlay.show{display:flex}
+.modal{background:var(--navy2);border:0.5px solid var(--border2);border-radius:20px 20px 0 0;width:100%;max-width:430px;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));max-height:85vh;overflow-y:auto}
+.modal-title{font-family:'Cinzel',serif;font-size:16px;color:var(--gold2);margin-bottom:16px;text-align:center;letter-spacing:.5px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:9px 12px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;font-family:'Lato',sans-serif;outline:none;-webkit-appearance:none}
+.field select option{background:var(--navy2)}
+.field textarea{resize:none;height:70px}
+.modal-btns{display:flex;gap:10px;margin-top:16px}
+.btn-cancel{flex:1;padding:11px;border:0.5px solid var(--border);border-radius:10px;background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:'Lato',sans-serif}
+.btn-save{flex:2;padding:11px;border:0.5px solid var(--border2);border-radius:10px;background:rgba(201,168,76,0.12);color:var(--gold2);font-size:13px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
+.empty-icon{font-size:32px;margin-bottom:10px}
+.empty-text{font-size:12px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="logo-big">Coronado Nova</div>
+  <div class="logo-small">Realty</div>
+  <div class="spinner"></div>
+</div>
+
+<div id="toast"></div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div class="modal" id="modal-content">
+    <div class="modal-title" id="modal-title">Add Property</div>
+    <div id="modal-fields"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveModal()">Save ✦</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-logo">
+      <img class="logo-img" src="" id="logo-img" alt=""/>
+      <div>
+        <div class="logo-name">Coronado Nova</div>
+        <div class="logo-sub">Realty</div>
+      </div>
+    </div>
+    <button class="sync-btn" onclick="syncAll()"><span class="sync-icon">↻</span> Sync</button>
+  </div>
+
+  <!-- SCREENS -->
+  <div class="screens">
+
+    <!-- DASHBOARD -->
+    <div class="screen active" id="screen-dashboard">
+      <div id="setup-banner" class="setup-banner">
+        <div class="setup-title">⚙ Connect Google Sheet</div>
+        <div class="setup-text">Paste your Apps Script Web App URL below to enable cloud sync. See the README file for setup steps.</div>
+        <input class="setup-input" id="script-url-input" type="url" placeholder="https://script.google.com/macros/s/.../exec"/>
+        <button class="setup-save" onclick="saveScriptUrl()">Save & Connect ✦</button>
+      </div>
+      <div class="page-head"><div><div class="page-title">Portfolio</div><div class="page-sub" id="dash-date">Loading...</div></div></div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-label">Properties</div><div class="stat-value v-blue" id="s-props">—</div></div>
+        <div class="stat"><div class="stat-label">Occupancy</div><div class="stat-value v-green" id="s-occ">—</div></div>
+        <div class="stat"><div class="stat-label">Rent collected</div><div class="stat-value v-gold" id="s-rent">—</div></div>
+        <div class="stat"><div class="stat-label">Overdue</div><div class="stat-value v-amber" id="s-overdue">—</div></div>
+      </div>
+      <div class="card urgent" id="maint-card">
+        <div class="card-header"><span class="card-title">Maintenance Alerts</span><span class="badge b-red" id="maint-count">—</span></div>
+        <div id="maint-list"></div>
+      </div>
+      <div class="card expiring" id="ins-alert-card">
+        <div class="card-header"><span class="card-title">Insurance Expiring</span><span class="badge b-amber" id="ins-exp-count">—</span></div>
+        <div id="ins-exp-list"></div>
+      </div>
+      <div class="g-rule"><div class="g-line"></div><div class="g-diamond"></div><div class="g-line"></div></div>
+      <button class="ai-btn" onclick="showSetupIfNeeded()">✦ Setup Guide & Info</button>
+    </div>
+
+    <!-- PROPERTIES -->
+    <div class="screen" id="screen-properties">
+      <div class="page-head">
+        <div><div class="page-title">Properties</div><div class="page-sub" id="prop-count">0 properties</div></div>
+        <button class="page-add" onclick="openModal('property')">+ Add</button>
+      </div>
+      <div class="filter-row">
+        <div class="chip active" onclick="filterProps('all',this)">All</div>
+        <div class="chip" onclick="filterProps('Occupied',this)">Occupied</div>
+        <div class="chip" onclick="filterProps('Vacant',this)">Vacant</div>
+        <div class="chip" onclick="filterProps('Maintenance',this)">Maintenance</div>
+      </div>
+      <div id="props-list"></div>
+    </div>
+
+    <!-- TENANTS -->
+    <div class="screen" id="screen-tenants">
+      <div class="page-head">
+        <div><div class="page-title">Tenants</div><div class="page-sub" id="tenant-count">0 tenants</div></div>
+        <button class="page-add" onclick="openModal('tenant')">+ Add</button>
+      </div>
+      <div class="filter-row">
+        <div class="chip active" onclick="filterTenants('all',this)">All</div>
+        <div class="chip" onclick="filterTenants('On time',this)">On time</div>
+        <div class="chip" onclick="filterTenants('Overdue',this)">Overdue</div>
+        <div class="chip" onclick="filterTenants('Renewing',this)">Renewing</div>
+      </div>
+      <div id="tenants-list"></div>
+    </div>
+
+    <!-- FINANCE -->
+    <div class="screen" id="screen-finance">
+      <div class="page-head">
+        <div><div class="page-title">Finance</div><div class="page-sub" id="fin-period">April 2026</div></div>
+        <button class="page-add" onclick="openModal('expense')">+ Expense</button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-label">Income</div><div class="stat-value v-green" id="f-income">—</div></div>
+        <div class="stat"><div class="stat-label">Expenses</div><div class="stat-value v-amber" id="f-expenses">—</div></div>
+        <div class="stat"><div class="stat-label">Net profit</div><div class="stat-value v-gold" id="f-profit">—</div></div>
+        <div class="stat"><div class="stat-label">Outstanding</div><div class="stat-value v-red" id="f-outstanding">—</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:10px">Rent Collection</div>
+        <div class="row"><span class="rl">Collected</span><span class="rv v-green" id="f-collected">—</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="f-progress" style="width:0%"></div></div>
+        <div style="margin-top:10px"></div>
+        <div class="row"><span class="rl">Late payments</span><span class="rv v-amber" id="f-late">—</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:10px">Recent Expenses</div>
+        <div id="exp-list"></div>
+      </div>
+      <button class="add-btn" onclick="openModal('expense')">+ Log expense</button>
+    </div>
+
+    <!-- MAINTENANCE -->
+    <div class="screen" id="screen-maintenance">
+      <div class="page-head">
+        <div><div class="page-title">Maintenance</div><div class="page-sub" id="maint-sub">0 open requests</div></div>
+        <button class="page-add" onclick="openModal('maintenance')">+ Add</button>
+      </div>
+      <div class="filter-row">
+        <div class="chip active" onclick="filterMaint('all',this)">All</div>
+        <div class="chip" onclick="filterMaint('Urgent',this)">Urgent</div>
+        <div class="chip" onclick="filterMaint('Pending',this)">Pending</div>
+        <div class="chip" onclick="filterMaint('Scheduled',this)">Scheduled</div>
+        <div class="chip" onclick="filterMaint('Resolved',this)">Resolved</div>
+      </div>
+      <div id="maint-full-list"></div>
+    </div>
+
+    <!-- INSURANCE -->
+    <div class="screen" id="screen-insurance">
+      <div class="page-head">
+        <div><div class="page-title">Insurance</div><div class="page-sub">Policies overview</div></div>
+        <button class="page-add" onclick="openModal('insurance')">+ Add</button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-label">Property</div><div class="stat-value v-blue" id="ins-prop-count">—</div></div>
+        <div class="stat"><div class="stat-label">Tenant</div><div class="stat-value v-blue" id="ins-ten-count">—</div></div>
+        <div class="stat"><div class="stat-label">Active</div><div class="stat-value v-green" id="ins-active">—</div></div>
+        <div class="stat"><div class="stat-label">Expiring</div><div class="stat-value v-amber" id="ins-expiring">—</div></div>
+      </div>
+      <div id="ins-list"></div>
+      <button class="add-btn" onclick="openModal('insurance')">+ Add policy</button>
+    </div>
+
+  </div><!-- /screens -->
+
+  <!-- NAV -->
+  <div class="nav-bar">
+    <button class="nav-btn active" onclick="showScreen('dashboard',this)"><span class="nav-icon">⊞</span>Overview<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="showScreen('properties',this)"><span class="nav-icon">⌂</span>Properties<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="showScreen('tenants',this)"><span class="nav-icon">♟</span>Tenants<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="showScreen('maintenance',this)"><span class="nav-icon">🔧</span>Tasks<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="showScreen('finance',this)"><span class="nav-icon">◈</span>Finance<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="showScreen('insurance',this)"><span class="nav-icon">✦</span>Insure<div class="nav-dot"></div></button>
+  </div>
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+const STATE = {
+  scriptUrl: localStorage.getItem('cnr_script_url') || '',
+  properties: JSON.parse(localStorage.getItem('cnr_properties') || '[]'),
+  tenants: JSON.parse(localStorage.getItem('cnr_tenants') || '[]'),
+  expenses: JSON.parse(localStorage.getItem('cnr_expenses') || '[]'),
+  maintenance: JSON.parse(localStorage.getItem('cnr_maintenance') || '[]'),
+  insurance: JSON.parse(localStorage.getItem('cnr_insurance') || '[]'),
+};
+
+const AVATARCOLORS = [
+  {bg:'rgba(133,183,235,0.15)',c:'#85B7EB'},
+  {bg:'rgba(93,202,165,0.15)',c:'#5DCAA5'},
+  {bg:'rgba(201,168,76,0.15)',c:'#E8C97A'},
+  {bg:'rgba(240,149,149,0.15)',c:'#F09595'},
+  {bg:'rgba(245,200,90,0.15)',c:'#F5C85A'},
+];
+
+function avatarColor(i){return AVATARCOLORS[i % AVATARCOLORS.length]}
+function initials(name){return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
+function save(key){localStorage.setItem('cnr_'+key, JSON.stringify(STATE[key]))}
+function fmt(n){return '$'+Math.round(n).toLocaleString()}
+function today(){const d=new Date();return d.toLocaleDateString('en-US',{month:'long',year:'numeric'})}
+function daysUntil(dateStr){if(!dateStr)return 9999;const d=new Date(dateStr)-new Date();return Math.ceil(d/86400000)}
+
+// ══════════════════════════════════════════════
+// GOOGLE SHEETS SYNC
+// ══════════════════════════════════════════════
+async function apiCall(action, data={}){
+  if(!STATE.scriptUrl) return null;
+  try{
+    const url = STATE.scriptUrl + '?action=' + action + '&data=' + encodeURIComponent(JSON.stringify(data));
+    const res = await fetch(url);
+    return await res.json();
+  } catch(e){ return null; }
+}
+
+async function syncAll(){
+  if(!STATE.scriptUrl){showSetupIfNeeded();return;}
+  toast('Syncing…');
+  const res = await apiCall('getAll');
+  if(res && res.success){
+    if(res.properties) {STATE.properties=res.properties; save('properties');}
+    if(res.tenants) {STATE.tenants=res.tenants; save('tenants');}
+    if(res.expenses) {STATE.expenses=res.expenses; save('expenses');}
+    if(res.maintenance) {STATE.maintenance=res.maintenance; save('maintenance');}
+    if(res.insurance) {STATE.insurance=res.insurance; save('insurance');}
+    renderAll();
+    toast('✓ Synced with Google Sheets');
+  } else {
+    toast('Using local data (offline)');
+    renderAll();
+  }
+}
+
+async function pushRow(sheet, row){
+  if(!STATE.scriptUrl) return;
+  await apiCall('addRow', {sheet, row});
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+function showScreen(id, btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ══════════════════════════════════════════════
+// SETUP
+// ══════════════════════════════════════════════
+function showSetupIfNeeded(){
+  const b=document.getElementById('setup-banner');
+  b.classList.add('show');
+  showScreen('dashboard', document.querySelector('.nav-btn'));
+  if(STATE.scriptUrl) document.getElementById('script-url-input').value=STATE.scriptUrl;
+}
+function saveScriptUrl(){
+  const v=document.getElementById('script-url-input').value.trim();
+  if(!v){toast('Please enter a valid URL');return;}
+  STATE.scriptUrl=v;
+  localStorage.setItem('cnr_script_url',v);
+  document.getElementById('setup-banner').classList.remove('show');
+  toast('✓ Script URL saved');
+  syncAll();
+}
+
+// ══════════════════════════════════════════════
+// RENDER DASHBOARD
+// ══════════════════════════════════════════════
+function renderDashboard(){
+  document.getElementById('dash-date').textContent = today();
+  const props = STATE.properties;
+  const tenants = STATE.tenants;
+  const maint = STATE.maintenance;
+  const ins = STATE.insurance;
+
+  const occupied = props.filter(p=>p.status==='Occupied').length;
+  const occ = props.length ? Math.round(occupied/props.length*100) : 0;
+  const rentCollected = tenants.filter(t=>t.rentStatus==='On time').reduce((a,t)=>a+Number(t.rent||0),0);
+  const overdue = tenants.filter(t=>t.rentStatus==='Overdue').length;
+
+  document.getElementById('s-props').textContent = props.length || '0';
+  document.getElementById('s-occ').textContent = props.length ? occ+'%' : '—';
+  document.getElementById('s-rent').textContent = rentCollected ? fmt(rentCollected) : '$0';
+  document.getElementById('s-overdue').textContent = overdue;
+
+  // Maintenance alerts
+  const openMaint = maint.filter(m=>m.status!=='Resolved');
+  document.getElementById('maint-count').textContent = openMaint.length + ' Open';
+  const ml = document.getElementById('maint-list');
+  if(openMaint.length===0){
+    ml.innerHTML='<div class="row"><span class="rl">No open requests</span><span class="badge b-green">All clear</span></div>';
+  } else {
+    ml.innerHTML = openMaint.slice(0,4).map(m=>`
+      <div class="row">
+        <span class="rl">${m.unit||m.property} — ${m.issue||m.type}</span>
+        <span class="badge ${m.status==='Urgent'?'b-red':m.status==='Scheduled'?'b-green':'b-amber'}">${m.status}</span>
+      </div>`).join('');
+  }
+
+  // Insurance expiring
+  const expiring = ins.filter(i=>daysUntil(i.expiry)<=60 && daysUntil(i.expiry)>0);
+  document.getElementById('ins-exp-count').textContent = expiring.length + ' Policies';
+  const el = document.getElementById('ins-exp-list');
+  if(expiring.length===0){
+    el.innerHTML='<div class="row"><span class="rl">No policies expiring soon</span><span class="badge b-green">All good</span></div>';
+  } else {
+    el.innerHTML = expiring.slice(0,4).map(i=>`
+      <div class="row">
+        <span class="rl">${i.name} — ${i.type}</span>
+        <span class="rv v-amber">${new Date(i.expiry).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+      </div>`).join('');
+  }
+
+  if(!STATE.scriptUrl) document.getElementById('setup-banner').classList.add('show');
+}
+
+// ══════════════════════════════════════════════
+// RENDER PROPERTIES
+// ══════════════════════════════════════════════
+function renderProperties(filter='all'){
+  const list = STATE.properties.filter(p=> filter==='all' || p.status===filter);
+  document.getElementById('prop-count').textContent = STATE.properties.length + ' properties total';
+  const el = document.getElementById('props-list');
+  if(list.length===0){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">⌂</div><div class="empty-text">No properties yet.<br/>Tap + Add to get started.</div></div>`;
+    return;
+  }
+  el.innerHTML = list.map(p=>{
+    const bc = p.status==='Occupied'?'b-green':p.status==='Vacant'?'b-amber':'b-red';
+    const tenant = STATE.tenants.find(t=>t.property===p.name||t.property===p.id);
+    return `<div class="card ${p.status==='Maintenance'?'urgent':''}">
+      <div class="card-header">
+        <div><div class="card-title">${p.name}</div><div class="card-sub">${p.type||''} · ${p.location||''}</div></div>
+        <span class="badge ${bc}">${p.status}</span>
+      </div>
+      <div class="row"><span class="rl">Rent</span><span class="rv v-gold">${p.rent?fmt(p.rent)+'/mo':'—'}</span></div>
+      <div class="row"><span class="rl">Tenant</span><span class="rv">${tenant?tenant.name:(p.status==='Vacant'?'Vacant':'—')}</span></div>
+      ${p.leaseEnd?`<div class="row"><span class="rl">Lease ends</span><span class="rv">${p.leaseEnd}</span></div>`:''}
+    </div>`;
+  }).join('');
+}
+function filterProps(f,el){
+  document.querySelectorAll('#screen-properties .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderProperties(f);
+}
+
+// ══════════════════════════════════════════════
+// RENDER TENANTS
+// ══════════════════════════════════════════════
+function renderTenants(filter='all'){
+  const list = STATE.tenants.filter(t=> filter==='all' || t.rentStatus===filter);
+  document.getElementById('tenant-count').textContent = STATE.tenants.length + ' active leases';
+  const el = document.getElementById('tenants-list');
+  if(list.length===0){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">♟</div><div class="empty-text">No tenants yet.<br/>Tap + Add to get started.</div></div>`;
+    return;
+  }
+  const card = `<div class="card" style="padding:10px 14px">`+
+    list.map((t,i)=>{
+      const ac=avatarColor(i);
+      const bc=t.rentStatus==='On time'?'b-green':t.rentStatus==='Overdue'?'b-amber':t.rentStatus==='Renewing'?'b-gold':'b-gray';
+      return `<div class="t-row">
+        <div class="avatar" style="background:${ac.bg};color:${ac.c}">${initials(t.name)}</div>
+        <div style="flex:1">
+          <div class="t-name">${t.name}</div>
+          <div class="t-detail">${t.property||'—'} · ${t.phone||t.email||''}</div>
+        </div>
+        <span class="badge ${bc}">${t.rentStatus||'—'}</span>
+      </div>`;
+    }).join('')+'</div>';
+  el.innerHTML=card;
+}
+function filterTenants(f,el){
+  document.querySelectorAll('#screen-tenants .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderTenants(f);
+}
+
+// ══════════════════════════════════════════════
+// RENDER FINANCE
+// ══════════════════════════════════════════════
+function renderFinance(){
+  const tenants=STATE.tenants, expenses=STATE.expenses;
+  document.getElementById('fin-period').textContent=today();
+  const income=tenants.filter(t=>t.rentStatus==='On time').reduce((a,t)=>a+Number(t.rent||0),0);
+  const totalExp=expenses.reduce((a,e)=>a+Number(e.amount||0),0);
+  const outstanding=tenants.filter(t=>t.rentStatus==='Overdue').reduce((a,t)=>a+Number(t.rent||0),0);
+  const collected=tenants.filter(t=>t.rentStatus==='On time').length;
+  const total=tenants.length;
+  const pct=total?Math.round(collected/total*100):0;
+
+  document.getElementById('f-income').textContent=fmt(income);
+  document.getElementById('f-expenses').textContent=fmt(totalExp);
+  document.getElementById('f-profit').textContent=fmt(income-totalExp);
+  document.getElementById('f-outstanding').textContent=fmt(outstanding);
+  document.getElementById('f-collected').textContent=collected+' / '+total;
+  document.getElementById('f-progress').style.width=pct+'%';
+  document.getElementById('f-late').textContent=tenants.filter(t=>t.rentStatus==='Overdue').length;
+
+  const expEl=document.getElementById('exp-list');
+  const recent=expenses.slice(-5).reverse();
+  if(recent.length===0){expEl.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">No expenses logged yet.</div>';return;}
+  expEl.innerHTML=recent.map(e=>`
+    <div class="exp-row">
+      <div class="exp-icon" style="background:rgba(201,168,76,0.1)">💳</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">${e.description||'Expense'}</div>
+        <div style="font-size:11px;color:var(--muted)">${e.property||'—'} · ${e.date||''}</div>
+      </div>
+      <span style="font-size:13px;font-weight:700;color:var(--red)">-${fmt(e.amount)}</span>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// RENDER MAINTENANCE
+// ══════════════════════════════════════════════
+function renderMaintenance(filter='all'){
+  const list=STATE.maintenance.filter(m=>filter==='all'||m.status===filter);
+  const open=STATE.maintenance.filter(m=>m.status!=='Resolved').length;
+  document.getElementById('maint-sub').textContent=open+' open requests';
+  const el=document.getElementById('maint-full-list');
+  if(list.length===0){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">🔧</div><div class="empty-text">No maintenance requests.<br/>Tap + Add to log one.</div></div>`;
+    return;
+  }
+  el.innerHTML=list.map(m=>{
+    const bc=m.status==='Urgent'?'b-red':m.status==='Scheduled'?'b-green':m.status==='Resolved'?'b-gray':'b-amber';
+    return `<div class="card ${m.status==='Urgent'?'urgent':''}">
+      <div class="card-header">
+        <div><div class="card-title">${m.property||'—'} · ${m.unit||''}</div><div class="card-sub">${m.type||m.issue||'General'}</div></div>
+        <span class="badge ${bc}">${m.status}</span>
+      </div>
+      ${m.description?`<div class="row"><span class="rl">Details</span><span class="rv" style="font-size:11px;text-align:right;max-width:200px">${m.description}</span></div>`:''}
+      ${m.date?`<div class="row"><span class="rl">Reported</span><span class="rv">${m.date}</span></div>`:''}
+    </div>`;
+  }).join('');
+}
+function filterMaint(f,el){
+  document.querySelectorAll('#screen-maintenance .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderMaintenance(f);
+}
+
+// ══════════════════════════════════════════════
+// RENDER INSURANCE
+// ══════════════════════════════════════════════
+function renderInsurance(){
+  const ins=STATE.insurance;
+  const propIns=ins.filter(i=>i.type==='Property');
+  const tenIns=ins.filter(i=>i.type==='Tenant');
+  const active=ins.filter(i=>daysUntil(i.expiry)>0).length;
+  const expiring=ins.filter(i=>daysUntil(i.expiry)<=60&&daysUntil(i.expiry)>0).length;
+  document.getElementById('ins-prop-count').textContent=propIns.length;
+  document.getElementById('ins-ten-count').textContent=tenIns.length;
+  document.getElementById('ins-active').textContent=active;
+  document.getElementById('ins-expiring').textContent=expiring;
+  const el=document.getElementById('ins-list');
+  if(ins.length===0){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">✦</div><div class="empty-text">No policies yet.<br/>Tap + Add to get started.</div></div>`;
+    return;
+  }
+  el.innerHTML=ins.map(i=>{
+    const days=daysUntil(i.expiry);
+    const bc=days<=30?'b-red':days<=60?'b-amber':'b-green';
+    const exp=i.expiry?new Date(i.expiry).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+    return `<div class="card ${days<=60?'expiring':''}">
+      <div class="ins-type">${i.type||'—'} insurance</div>
+      <div class="card-header" style="margin-bottom:8px">
+        <div><div class="card-title">${i.name||'—'}</div><div class="card-sub">${i.provider||''} ${i.policyNumber?'· '+i.policyNumber:''}</div></div>
+        <span class="badge ${bc}">${days<=0?'Expired':days<=60?exp:'Active'}</span>
+      </div>
+      <div class="row"><span class="rl">Coverage</span><span class="rv v-gold">${i.coverage?fmt(i.coverage):'—'}</span></div>
+      ${i.premium?`<div class="row"><span class="rl">Premium</span><span class="rv">${i.premiumCycle==='Monthly'?'$'+i.premium+'/mo':fmt(i.premium)+'/yr'}</span></div>`:''}
+      <div class="row"><span class="rl">Expires</span><span class="rv ${bc.replace('b-','v-')}">${exp}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// RENDER ALL
+// ══════════════════════════════════════════════
+function renderAll(){
+  renderDashboard();
+  renderProperties();
+  renderTenants();
+  renderFinance();
+  renderMaintenance();
+  renderInsurance();
+}
+
+// ══════════════════════════════════════════════
+// MODAL FORMS
+// ══════════════════════════════════════════════
+let currentModal='';
+const PROP_NAMES = ()=>STATE.properties.map(p=>p.name);
+
+const FIELDS = {
+  property:[
+    {id:'name',label:'Property Name',type:'text',placeholder:'e.g. Maple Street #3'},
+    {id:'type',label:'Type',type:'select',options:['Apartment','House','Commercial','Studio','Other']},
+    {id:'location',label:'Location / Zone',type:'text',placeholder:'e.g. Downtown'},
+    {id:'status',label:'Status',type:'select',options:['Occupied','Vacant','Maintenance']},
+    {id:'rent',label:'Monthly Rent ($)',type:'number',placeholder:'e.g. 1850'},
+    {id:'leaseEnd',label:'Lease End Date',type:'date'},
+  ],
+  tenant:[
+    {id:'name',label:'Full Name',type:'text',placeholder:'e.g. Julia Rivera'},
+    {id:'property',label:'Property',type:'select',options:()=>['— Select —',...PROP_NAMES()]},
+    {id:'email',label:'Email',type:'email',placeholder:'email@example.com'},
+    {id:'phone',label:'Phone',type:'tel',placeholder:'+1 (555) 000-0000'},
+    {id:'rent',label:'Monthly Rent ($)',type:'number',placeholder:'e.g. 1850'},
+    {id:'rentStatus',label:'Rent Status',type:'select',options:['On time','Overdue','Renewing']},
+    {id:'leaseStart',label:'Lease Start',type:'date'},
+    {id:'leaseEnd',label:'Lease End',type:'date'},
+  ],
+  expense:[
+    {id:'description',label:'Description',type:'text',placeholder:'e.g. Plumbing repair'},
+    {id:'property',label:'Property',type:'select',options:()=>['— Select —',...PROP_NAMES()]},
+    {id:'amount',label:'Amount ($)',type:'number',placeholder:'e.g. 320'},
+    {id:'category',label:'Category',type:'select',options:['Maintenance','Insurance','Tax','Utilities','Other']},
+    {id:'date',label:'Date',type:'date'},
+  ],
+  maintenance:[
+    {id:'property',label:'Property',type:'select',options:()=>['— Select —',...PROP_NAMES()]},
+    {id:'unit',label:'Unit / Reference',type:'text',placeholder:'e.g. Unit 4B'},
+    {id:'type',label:'Issue Type',type:'select',options:['Plumbing','HVAC','Electrical','Structural','Appliance','Other']},
+    {id:'description',label:'Description',type:'textarea',placeholder:'Describe the issue...'},
+    {id:'status',label:'Status',type:'select',options:['Urgent','Pending','Scheduled','Resolved']},
+    {id:'date',label:'Reported Date',type:'date'},
+  ],
+  insurance:[
+    {id:'name',label:'Property / Tenant Name',type:'text',placeholder:'e.g. Maple Street #3'},
+    {id:'type',label:'Policy Type',type:'select',options:['Property','Tenant']},
+    {id:'provider',label:'Insurance Provider',type:'text',placeholder:'e.g. Allstate'},
+    {id:'policyNumber',label:'Policy Number',type:'text',placeholder:'e.g. A-441892'},
+    {id:'coverage',label:'Coverage Amount ($)',type:'number',placeholder:'e.g. 280000'},
+    {id:'premium',label:'Premium Amount ($)',type:'number',placeholder:'e.g. 1240'},
+    {id:'premiumCycle',label:'Premium Cycle',type:'select',options:['Annual','Monthly']},
+    {id:'expiry',label:'Expiry Date',type:'date'},
+  ],
+};
+
+function openModal(type){
+  currentModal=type;
+  const titles={property:'Add Property',tenant:'Add Tenant',expense:'Log Expense',maintenance:'Maintenance Request',insurance:'Add Insurance Policy'};
+  document.getElementById('modal-title').textContent=titles[type]||'Add';
+  const fields=FIELDS[type]||[];
+  document.getElementById('modal-fields').innerHTML=fields.map(f=>{
+    const opts=typeof f.options==='function'?f.options():f.options;
+    if(f.type==='select')
+      return `<div class="field"><label>${f.label}</label><select id="mf-${f.id}">${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+    if(f.type==='textarea')
+      return `<div class="field"><label>${f.label}</label><textarea id="mf-${f.id}" placeholder="${f.placeholder||''}"></textarea></div>`;
+    return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}"/></div>`;
+  }).join('');
+  // default date to today
+  const dateField=document.getElementById('mf-date');
+  if(dateField) dateField.value=new Date().toISOString().split('T')[0];
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+function saveModal(){
+  const fields=FIELDS[currentModal]||[];
+  const row={id:Date.now()};
+  for(const f of fields){
+    const el=document.getElementById('mf-'+f.id);
+    if(el) row[f.id]=el.value;
+  }
+  const key=currentModal==='expense'?'expenses':currentModal==='maintenance'?'maintenance':currentModal==='insurance'?'insurance':currentModal+'s';
+  if(STATE[key]) STATE[key].push(row);
+  save(key);
+  pushRow(currentModal, row);
+  closeModal();
+  renderAll();
+  toast('✓ Saved successfully');
+}
+
+// Close modal on overlay tap
+document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+// ══════════════════════════════════════════════
+// FILTER CHIPS
+// ══════════════════════════════════════════════
+document.querySelectorAll('.filter-row').forEach(row=>{
+  row.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click',function(){
+      row.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+});
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+window.addEventListener('load',()=>{
+  // Try to load logo from same folder (user can replace logo.png)
+  const img=document.getElementById('logo-img');
+  img.src='logo.png';
+  img.onerror=()=>{img.style.display='none';};
+
+  renderAll();
+  setTimeout(()=>{
+    document.getElementById('loading').style.opacity='0';
+    setTimeout(()=>document.getElementById('loading').style.display='none',400);
+  },800);
+
+  if(!STATE.scriptUrl){
+    setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),1200);
+  } else {
+    syncAll();
+  }
+});
+</script>
+</body>
+</html>
