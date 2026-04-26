@@ -741,12 +741,44 @@ function saveModal(){
     const el=document.getElementById('mf-'+f.id);
     if(el) row[f.id]=el.value;
   }
-  const key=currentModal==='expense'?'expenses':currentModal==='maintenance'?'maintenance':currentModal==='insurance'?'insurance':currentModal+'s';
+
+  // Fix: correct key mapping for every type
+  const keyMap={
+    property:'properties',
+    tenant:'tenants',
+    expense:'expenses',
+    maintenance:'maintenance',
+    insurance:'insurance'
+  };
+  const key=keyMap[currentModal];
+  if(!key){toast('Unknown type: '+currentModal);return;}
+
+  // Validate name/description field is not empty
+  const firstField=fields[0];
+  if(firstField && row[firstField.id] && row[firstField.id].trim()===''){
+    toast('Please fill in the required fields');return;
+  }
+
   if(STATE[key]) STATE[key].push(row);
   save(key);
   pushRow(currentModal, row);
   closeModal();
   renderAll();
+
+  // Navigate to the relevant screen so user sees the new item
+  const screenMap={
+    property:'properties',
+    tenant:'tenants',
+    expense:'finance',
+    maintenance:'maintenance',
+    insurance:'insurance'
+  };
+  const targetScreen=screenMap[currentModal];
+  if(targetScreen){
+    const navBtn=document.querySelector(`.nav-btn[onclick*="${targetScreen}"]`);
+    showScreen(targetScreen, navBtn);
+  }
+
   toast('✓ Saved successfully');
 }
 
