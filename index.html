@@ -26,10 +26,10 @@
   --info-bg:rgba(133,183,235,0.15);--info-border:rgba(133,183,235,0.3);
   --gold-bg:rgba(201,168,76,0.15);
 }
-html,body{height:100%;background:var(--navy);font-family:'Lato',sans-serif;color:var(--text);overflow:hidden}
+html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sans-serif;color:var(--text);overflow:hidden;position:fixed;width:100%}
 
 /* ── APP SHELL ── */
-#app{display:flex;flex-direction:column;height:100vh;max-width:430px;margin:0 auto;position:relative;background:var(--navy)}
+#app{display:flex;flex-direction:column;height:100%;height:100dvh;max-width:430px;margin:0 auto;position:relative;background:var(--navy);overflow:hidden}
 
 /* ── HEADER ── */
 .header{background:var(--navy2);border-bottom:0.5px solid var(--border);padding:env(safe-area-inset-top,12px) 16px 10px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
@@ -43,12 +43,12 @@ html,body{height:100%;background:var(--navy);font-family:'Lato',sans-serif;color
 .sync-icon{font-size:13px}
 
 /* ── SCREENS ── */
-.screens{flex:1;overflow:hidden;position:relative}
-.screen{position:absolute;inset:0;overflow-y:auto;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));display:none;-webkit-overflow-scrolling:touch}
+.screens{flex:1;overflow:hidden;position:relative;min-height:0}
+.screen{position:absolute;inset:0;overflow-y:auto;padding:16px 16px 24px;display:none;-webkit-overflow-scrolling:touch}
 .screen.active{display:block}
 
 /* ── NAV ── */
-.nav-bar{background:var(--navy2);border-top:0.5px solid var(--border);display:flex;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-bar{background:var(--navy2);border-top:0.5px solid var(--border);display:flex;flex-shrink:0;padding-bottom:max(env(safe-area-inset-bottom,0px),8px)}
 .nav-btn{flex:1;padding:10px 4px 8px;border:none;background:none;font-family:'Lato',sans-serif;font-size:9px;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;letter-spacing:.5px;text-transform:uppercase;transition:color 0.2s}
 .nav-btn.active{color:var(--gold2)}
 .nav-icon{font-size:16px;line-height:1}
@@ -162,9 +162,190 @@ html,body{height:100%;background:var(--navy);font-family:'Lato',sans-serif;color
 .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
 .empty-icon{font-size:32px;margin-bottom:10px}
 .empty-text{font-size:12px;line-height:1.6}
+
+/* ── LOGIN SCREEN ── */
+#login-screen{position:fixed;inset:0;background:var(--navy);z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px}
+#login-screen.hidden{display:none}
+.login-logo-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:36px}
+.login-logo-img{width:86px;height:86px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border2);margin-bottom:16px}
+.login-brand{font-family:'Cinzel',serif;font-size:22px;font-weight:600;color:var(--gold2);letter-spacing:1px;text-align:center}
+.login-sub{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-top:5px;text-align:center}
+.login-rule{display:flex;align-items:center;gap:8px;width:100%;margin:0 0 28px}
+.login-rule-line{flex:1;height:0.5px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}
+.login-rule-diamond{width:5px;height:5px;background:var(--gold);transform:rotate(45deg);flex-shrink:0}
+.login-form{width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px}
+.login-label{font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+.login-input-wrap{position:relative}
+.login-input{width:100%;padding:13px 44px 13px 16px;background:var(--navy3);border:0.5px solid var(--border2);border-radius:12px;color:var(--text);font-size:15px;font-family:'Lato',sans-serif;outline:none;letter-spacing:2px;-webkit-appearance:none}
+.login-input:focus{border-color:var(--gold2)}
+.login-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px}
+.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,rgba(201,168,76,0.2),rgba(201,168,76,0.08));border:0.5px solid var(--border2);border-radius:12px;color:var(--gold2);font-size:14px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:1px;margin-top:4px;transition:background 0.2s}
+.login-btn:active{background:rgba(201,168,76,0.25)}
+.login-error{font-size:12px;color:var(--red);text-align:center;min-height:18px}
+.login-attempts{font-size:11px;color:var(--muted);text-align:center;margin-top:2px}
+.shake{animation:shake 0.4s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+
+/* ── LEADS / CRM ── */
+.leads-prop-section{margin-bottom:18px}
+.leads-prop-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:10px 12px;background:var(--navy3);border:0.5px solid var(--border);border-radius:10px;cursor:pointer}
+.leads-prop-title{font-family:'Cinzel',serif;font-size:13px;color:var(--gold2);letter-spacing:.3px}
+.leads-prop-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.leads-prop-toggle{font-size:16px;color:var(--muted);transition:transform 0.2s}
+.leads-prop-toggle.open{transform:rotate(180deg)}
+.lead-card{background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;position:relative}
+.lead-card.favorite{border-color:var(--gold);}
+.lead-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.lead-name{font-size:14px;font-weight:700;color:var(--text)}
+.lead-fav{font-size:16px;line-height:1}
+.lead-info{font-size:11px;color:var(--muted);margin-top:1px}
+.lead-tags{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.lead-score{display:flex;gap:3px;align-items:center}
+.score-dot{width:10px;height:10px;border-radius:50%}
+.score-dot.filled{background:var(--gold2)}
+.score-dot.empty{background:rgba(255,255,255,0.1)}
+.lead-actions{display:flex;gap:7px;margin-top:10px}
+.lead-btn{flex:1;padding:7px 6px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'Lato',sans-serif;letter-spacing:.3px;border:0.5px solid var(--border);background:transparent;color:var(--muted);transition:all 0.15s}
+.lead-btn.primary{background:rgba(201,168,76,0.1);border-color:var(--border2);color:var(--gold2)}
+.lead-btn.danger{background:rgba(240,149,149,0.08);border-color:rgba(240,149,149,0.3);color:var(--red)}
+.lead-btn.convert{background:rgba(93,202,165,0.1);border-color:rgba(93,202,165,0.3);color:var(--green)}
+.process-bar{display:flex;gap:2px;margin:8px 0 4px}
+.process-step{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.08)}
+.process-step.done{background:var(--green)}
+.process-step.current{background:var(--gold2)}
+.process-step.lost{background:var(--red)}
+.process-label{font-size:10px;color:var(--muted);letter-spacing:.3px}
+.lead-comments{font-size:11px;color:var(--muted);font-style:italic;margin-top:6px;line-height:1.5;border-top:0.5px solid rgba(255,255,255,0.05);padding-top:6px}
+/* Convert modal */
+.convert-box{background:rgba(93,202,165,0.08);border:0.5px solid rgba(93,202,165,0.3);border-radius:10px;padding:12px;margin-bottom:12px}
+.convert-title{font-family:'Cinzel',serif;font-size:13px;color:var(--green);margin-bottom:6px}
+.convert-text{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* ── AGENDA / CALENDAR VIEW ── */
+.agenda-date-bar{display:flex;align-items:center;justify-content:space-between;background:var(--navy3);border:0.5px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:16px;gap:8px}
+.agenda-nav-btn{background:none;border:0.5px solid var(--border);border-radius:8px;color:var(--gold2);font-size:18px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.agenda-date-center{flex:1;text-align:center}
+.agenda-date-label{font-family:'Cinzel',serif;font-size:14px;color:var(--gold2);letter-spacing:.5px}
+.agenda-date-sub{font-size:10px;color:var(--muted);letter-spacing:.8px;margin-top:2px;text-transform:uppercase}
+.agenda-date-input{position:absolute;opacity:0;width:0;height:0}
+.agenda-today-btn{font-size:10px;color:var(--muted);border:0.5px solid var(--border);border-radius:6px;padding:3px 8px;background:none;cursor:pointer;font-family:'Lato',sans-serif;white-space:nowrap}
+.agenda-today-btn.is-today{color:var(--gold2);border-color:var(--border2)}
+
+/* Week strip */
+.week-strip{display:flex;gap:5px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px}
+.week-strip::-webkit-scrollbar{display:none}
+.week-day{flex:0 0 44px;display:flex;flex-direction:column;align-items:center;padding:6px 4px;border-radius:10px;cursor:pointer;border:0.5px solid transparent;transition:all 0.15s}
+.week-day:active{opacity:0.7}
+.week-day.has-events{border-color:var(--border)}
+.week-day.selected{background:rgba(201,168,76,0.15);border-color:var(--border2)}
+.week-day.today-day .wd-num{background:var(--gold2);color:var(--navy);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+.wd-name{font-size:9px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px}
+.wd-num{font-family:'Cinzel',serif;font-size:14px;color:var(--text);width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+.wd-dot{width:5px;height:5px;border-radius:50%;background:var(--gold2);margin-top:3px;opacity:0}
+.week-day.has-events .wd-dot{opacity:1}
+
+/* Timeline */
+.timeline{position:relative;padding-left:52px}
+.timeline-hour{position:relative;min-height:56px;border-top:0.5px solid rgba(255,255,255,0.05)}
+.timeline-hour:last-child{border-bottom:0.5px solid rgba(255,255,255,0.05)}
+.tl-label{position:absolute;left:-52px;top:-9px;width:44px;text-align:right;font-size:10px;color:var(--muted);letter-spacing:.3px}
+.tl-now-line{position:absolute;left:-52px;right:0;height:1.5px;background:var(--red);z-index:5;pointer-events:none}
+.tl-now-dot{position:absolute;left:-6px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--red)}
+.tl-now-time{position:absolute;right:0;top:-10px;font-size:9px;color:var(--red);letter-spacing:.3px}
+
+/* Event block */
+.agenda-event{position:absolute;left:0;right:0;border-radius:8px;padding:7px 10px;cursor:pointer;transition:opacity 0.15s;overflow:hidden}
+.agenda-event:active{opacity:0.75}
+.ae-time{font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:2px}
+.ae-name{font-size:12px;font-weight:700;color:#fff;line-height:1.3}
+.ae-prop{font-size:10px;opacity:.75;margin-top:1px}
+.ae-badges{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.ae-badge{font-size:9px;padding:1px 5px;border-radius:4px;background:rgba(255,255,255,0.2);color:#fff;letter-spacing:.3px}
+
+/* Empty agenda */
+.agenda-empty{text-align:center;padding:48px 20px}
+.agenda-empty-icon{font-size:36px;margin-bottom:12px}
+.agenda-empty-title{font-family:'Cinzel',serif;font-size:15px;color:var(--gold2);margin-bottom:6px}
+.agenda-empty-text{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* Agenda event detail bottom sheet */
+.event-detail{padding:4px 0 8px}
+.ed-prop{font-size:11px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px}
+.ed-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid rgba(255,255,255,0.05);font-size:12px}
+.ed-row:last-child{border-bottom:none}
+.ed-label{color:var(--muted)}
+.ed-value{color:var(--text);font-weight:700;text-align:right;max-width:60%}
+
+/* ── WHATSAPP AI PARSER ── */
+.wa-btn{width:100%;padding:12px 14px;border:0.5px solid #25D366;border-radius:12px;
+  background:rgba(37,211,102,0.07);color:#25D366;font-size:13px;cursor:pointer;
+  font-family:'Lato',sans-serif;letter-spacing:.4px;display:flex;align-items:center;
+  justify-content:center;gap:8px;margin-bottom:10px;transition:background 0.2s}
+.wa-btn:active{background:rgba(37,211,102,0.15)}
+.wa-btn-icon{font-size:18px}
+.wa-modal-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;
+  padding:12px 14px;background:rgba(37,211,102,0.07);border:0.5px solid rgba(37,211,102,0.3);
+  border-radius:10px}
+.wa-modal-icon{font-size:24px}
+.wa-modal-label{font-size:12px;color:#25D366;font-weight:700;letter-spacing:.5px}
+.wa-modal-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.wa-textarea{width:100%;padding:12px;background:var(--navy4);border:0.5px solid rgba(37,211,102,0.3);
+  border-radius:10px;color:var(--text);font-size:12px;font-family:'Lato',sans-serif;
+  outline:none;resize:none;height:160px;line-height:1.6}
+.wa-textarea:focus{border-color:#25D366}
+.wa-analyze-btn{width:100%;padding:12px;background:linear-gradient(135deg,rgba(37,211,102,0.15),rgba(37,211,102,0.05));
+  border:0.5px solid #25D366;border-radius:10px;color:#25D366;font-size:13px;
+  cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px;margin-top:10px;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s}
+.wa-analyze-btn:disabled{opacity:0.5;cursor:not-allowed}
+.wa-analyzing{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 20px;gap:14px}
+.wa-analyzing-icon{font-size:32px;animation:waPulse 1s ease-in-out infinite}
+@keyframes waPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:0.7}}
+.wa-analyzing-text{font-family:'Cinzel',serif;font-size:14px;color:#25D366;letter-spacing:.5px}
+.wa-analyzing-sub{font-size:11px;color:var(--muted);text-align:center;line-height:1.6}
+.wa-result-header{background:rgba(37,211,102,0.07);border:0.5px solid rgba(37,211,102,0.3);
+  border-radius:10px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.wa-result-label{font-size:12px;color:#25D366;font-weight:700}
+.wa-result-conf{font-size:11px;color:var(--muted);margin-left:auto}
+.wa-field-preview{background:var(--navy4);border:0.5px solid var(--border);border-radius:8px;
+  padding:10px 12px;margin-bottom:8px}
+.wa-field-label{font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.wa-field-value{font-size:13px;color:var(--text);font-weight:700}
+.wa-field-edit{width:100%;padding:7px 10px;background:var(--navy);border:0.5px solid var(--border2);
+  border-radius:6px;color:var(--text);font-size:13px;font-family:'Lato',sans-serif;outline:none;margin-top:4px}
+.wa-confirm-btn{width:100%;padding:12px;background:rgba(37,211,102,0.12);
+  border:0.5px solid #25D366;border-radius:10px;color:#25D366;font-size:13px;
+  cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px;margin-top:8px}
+.wa-retry-btn{width:100%;padding:10px;border:0.5px solid var(--border);border-radius:10px;
+  background:transparent;color:var(--muted);font-size:12px;cursor:pointer;
+  font-family:'Lato',sans-serif;margin-top:6px}
 </style>
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-logo-wrap">
+    <img class="login-logo-img" id="login-logo-img" src="logo.png" onerror="this.style.display='none'"/>
+    <div class="login-brand">Coronado Nova</div>
+    <div class="login-sub">Realty &middot; Property Management</div>
+  </div>
+  <div class="login-rule"><div class="login-rule-line"></div><div class="login-rule-diamond"></div><div class="login-rule-line"></div></div>
+  <div class="login-form">
+    <div>
+      <div class="login-label">Access Password</div>
+      <div class="login-input-wrap">
+        <input class="login-input" id="login-input" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
+          autocomplete="current-password" onkeydown="if(event.key==='Enter')submitLogin()"/>
+        <button class="login-eye" onclick="toggleEye()" id="eye-btn">👁</button>
+      </div>
+    </div>
+    <button class="login-btn" onclick="submitLogin()">Enter ❖</button>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-attempts" id="login-attempts"></div>
+  </div>
+</div>
 
 <div id="loading">
   <div class="logo-big">Coronado Nova</div>
@@ -196,7 +377,10 @@ html,body{height:100%;background:var(--navy);font-family:'Lato',sans-serif;color
         <div class="logo-sub">Realty</div>
       </div>
     </div>
-    <button class="sync-btn" onclick="syncAll()"><span class="sync-icon">↻</span> Sync</button>
+    <div style="display:flex;gap:7px;align-items:center">
+      <button class="sync-btn" onclick="syncAll()"><span class="sync-icon">↻</span> Sync</button>
+      <button class="sync-btn" onclick="lockApp()" title="Lock app" style="padding:4px 8px;font-size:13px;">🔒</button>
+    </div>
   </div>
 
   <!-- SCREENS -->
@@ -317,14 +501,66 @@ html,body{height:100%;background:var(--navy);font-family:'Lato',sans-serif;color
       <button class="add-btn" onclick="openModal('insurance')">+ Add policy</button>
     </div>
 
+
+    <!-- LEADS / CRM -->
+    <div class="screen" id="screen-leads">
+      <div class="page-head">
+        <div><div class="page-title">Leads</div><div class="page-sub" id="leads-sub">CRM · Vacant Properties</div></div>
+        <button class="page-add" onclick="openLeadModal()">+ Lead</button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-label">Total Leads</div><div class="stat-value v-blue" id="l-total">—</div></div>
+        <div class="stat"><div class="stat-label">Active</div><div class="stat-value v-green" id="l-active">—</div></div>
+        <div class="stat"><div class="stat-label">Favorites</div><div class="stat-value v-gold" id="l-favs">—</div></div>
+        <div class="stat"><div class="stat-label">Signed</div><div class="stat-value v-amber" id="l-signed">—</div></div>
+      </div>
+      <button class="wa-btn" onclick="openWAModal()">
+        <span class="wa-btn-icon">💬</span> Import Lead from WhatsApp Chat
+      </button>
+      <div class="filter-row">
+        <div class="chip active" onclick="filterLeads('all',this)">All</div>
+        <div class="chip" onclick="filterLeads('active',this)">Active</div>
+        <div class="chip" onclick="filterLeads('favorites',this)">⭐ Favorites</div>
+        <div class="chip" onclick="filterLeads('hot',this)">🔥 Score 4-5</div>
+        <div class="chip" onclick="filterLeads('signed',this)">Signed</div>
+      </div>
+      <div id="leads-list"></div>
+    </div>
+
+
+    <!-- AGENDA -->
+    <div class="screen" id="screen-agenda">
+      <div class="page-head">
+        <div><div class="page-title">Agenda</div><div class="page-sub" id="agenda-count">Interview schedule</div></div>
+      </div>
+
+      <!-- Date navigation bar -->
+      <div class="agenda-date-bar">
+        <button class="agenda-nav-btn" onclick="agendaShiftDay(-1)">‹</button>
+        <div class="agenda-date-center" onclick="agendaPickDate()">
+          <div class="agenda-date-label" id="agenda-date-label">Today</div>
+          <div class="agenda-date-sub" id="agenda-date-sub">Tap to change date</div>
+        </div>
+        <input type="date" id="agenda-date-picker" class="agenda-date-input" onchange="agendaDatePicked(this.value)"/>
+        <button class="agenda-today-btn" id="agenda-today-btn" onclick="agendaGoToday()">Today</button>
+        <button class="agenda-nav-btn" onclick="agendaShiftDay(1)">›</button>
+      </div>
+
+      <!-- 7-day week strip -->
+      <div class="week-strip" id="agenda-week-strip"></div>
+
+      <!-- Timeline -->
+      <div id="agenda-timeline-wrap"></div>
+    </div>
+
   </div><!-- /screens -->
 
   <!-- NAV -->
   <div class="nav-bar">
-    <button class="nav-btn active" onclick="showScreen('dashboard',this)"><span class="nav-icon">⊞</span>Overview<div class="nav-dot"></div></button>
-    <button class="nav-btn" onclick="showScreen('properties',this)"><span class="nav-icon">⌂</span>Properties<div class="nav-dot"></div></button>
-    <button class="nav-btn" onclick="showScreen('tenants',this)"><span class="nav-icon">♟</span>Tenants<div class="nav-dot"></div></button>
-    <button class="nav-btn" onclick="showScreen('maintenance',this)"><span class="nav-icon">🔧</span>Tasks<div class="nav-dot"></div></button>
+    <button class="nav-btn active" onclick="showScreen('dashboard',this)"><span class="nav-icon">⊞</span>Home<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="showScreen('properties',this)"><span class="nav-icon">⌂</span>Props<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="showScreen('leads',this)"><span class="nav-icon">🎯</span>Leads<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="showScreen('agenda',this);renderAgenda()"><span class="nav-icon">📅</span>Agenda<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('finance',this)"><span class="nav-icon">◈</span>Finance<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('insurance',this)"><span class="nav-icon">✦</span>Insure<div class="nav-dot"></div></button>
   </div>
@@ -341,6 +577,7 @@ const STATE = {
   expenses: JSON.parse(localStorage.getItem('cnr_expenses') || '[]'),
   maintenance: JSON.parse(localStorage.getItem('cnr_maintenance') || '[]'),
   insurance: JSON.parse(localStorage.getItem('cnr_insurance') || '[]'),
+  leads: JSON.parse(localStorage.getItem('cnr_leads') || '[]'),
 };
 
 const AVATARCOLORS = [
@@ -380,6 +617,7 @@ async function syncAll(){
     if(res.expenses) {STATE.expenses=res.expenses; save('expenses');}
     if(res.maintenance) {STATE.maintenance=res.maintenance; save('maintenance');}
     if(res.insurance) {STATE.insurance=res.insurance; save('insurance');}
+    if(res.leads) {STATE.leads=res.leads; save('leads');}
     renderAll();
     toast('✓ Synced with Google Sheets');
   } else {
@@ -657,7 +895,523 @@ function renderAll(){
   renderFinance();
   renderMaintenance();
   renderInsurance();
+  renderLeads();
 }
+
+// ══════════════════════════════════════════════
+// LEADS / CRM
+// ══════════════════════════════════════════════
+const PROCESS_STEPS = ['Starting','Interview Scheduled','Preparing Documents','Insurance Evaluation','Approved','Contract Signed','Lost'];
+const INTEREST_LEVELS = ['Very Interested','Interested','Normal','Low','Very Low'];
+
+function scoreStars(n){
+  let s='';
+  for(let i=1;i<=5;i++) s+=`<div class="score-dot ${i<=n?'filled':'empty'}"></div>`;
+  return s;
+}
+
+function processIndex(step){
+  if(step==='Lost') return -1;
+  return PROCESS_STEPS.indexOf(step);
+}
+
+function renderLeads(filter='all'){
+  const leads = STATE.leads;
+  const vacants = STATE.properties.filter(p=>p.status==='Vacant');
+
+  // Stats
+  document.getElementById('l-total').textContent = leads.length;
+  document.getElementById('l-active').textContent = leads.filter(l=>l.status==='Active').length;
+  document.getElementById('l-favs').textContent = leads.filter(l=>l.favorite==='1'||l.favorite===true).length;
+  document.getElementById('l-signed').textContent = leads.filter(l=>l.salesProcess==='Contract Signed').length;
+  document.getElementById('leads-sub').textContent = vacants.length + ' vacant ' + (vacants.length===1?'property':'properties') + ' · ' + leads.length + ' leads';
+
+  const el = document.getElementById('leads-list');
+
+  // Apply filter
+  let filtered = leads;
+  if(filter==='active') filtered = leads.filter(l=>l.status==='Active');
+  else if(filter==='favorites') filtered = leads.filter(l=>l.favorite==='1'||l.favorite===true);
+  else if(filter==='hot') filtered = leads.filter(l=>Number(l.score)>=4);
+  else if(filter==='signed') filtered = leads.filter(l=>l.salesProcess==='Contract Signed');
+
+  if(filtered.length===0 && leads.length===0){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">🎯</div><div class="empty-text">No leads yet.<br/>Tap + Lead to add your first prospect.</div></div>`;
+    return;
+  }
+  if(filtered.length===0){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">No leads match this filter.</div></div>`;
+    return;
+  }
+
+  // Group by property
+  const byProp = {};
+  filtered.forEach(l=>{
+    const key = l.property||'Unassigned';
+    if(!byProp[key]) byProp[key]=[];
+    byProp[key].push(l);
+  });
+
+  let html = '';
+  for(const [propName, propLeads] of Object.entries(byProp)){
+    const prop = STATE.properties.find(p=>p.name===propName);
+    const sortedLeads = [...propLeads].sort((a,b)=>(b.score||0)-(a.score||0));
+    html += `<div class="leads-prop-section">
+      <div class="leads-prop-header" onclick="togglePropLeads('lp-${propName.replace(/[^a-z0-9]/gi,'_')}',this)">
+        <div>
+          <div class="leads-prop-title">⌂ ${propName}</div>
+          <div class="leads-prop-meta">${prop?prop.type+' · '+prop.location:'Vacant'} · ${propLeads.length} lead${propLeads.length===1?'':'s'}</div>
+        </div>
+        <span class="leads-prop-toggle open">▾</span>
+      </div>
+      <div id="lp-${propName.replace(/[^a-z0-9]/gi,'_')}">`;
+
+    sortedLeads.forEach(l=>{
+      const isFav = l.favorite==='1'||l.favorite===true;
+      const stepIdx = processIndex(l.salesProcess);
+      const isLost = l.salesProcess==='Lost';
+      const isSigned = l.salesProcess==='Contract Signed';
+      const interestColor = l.interestLevel==='Very Interested'?'b-green':l.interestLevel==='Interested'?'b-blue':l.interestLevel==='Normal'?'b-gray':l.interestLevel==='Low'?'b-amber':'b-red';
+
+      // Process bar (6 steps, lost = all red)
+      let barHtml = '<div class="process-bar">';
+      for(let i=0;i<6;i++){
+        let cls = isLost?'lost':i<stepIdx?'done':i===stepIdx?'current':'';
+        barHtml += `<div class="process-step ${cls}"></div>`;
+      }
+      barHtml += '</div>';
+
+      html += `<div class="lead-card ${isFav?'favorite':''}">
+        <div class="lead-card-top">
+          <div>
+            <div class="lead-name">${l.name||'—'} ${isFav?'⭐':''}</div>
+            <div class="lead-info">${l.phone||''} ${l.email?'· '+l.email:''}</div>
+          </div>
+          <span class="badge ${l.status==='Active'?'b-green':'b-gray'}">${l.status||'—'}</span>
+        </div>
+        <div class="lead-tags">
+          <span class="badge ${interestColor}">${l.interestLevel||'—'}</span>
+          <div class="lead-score" title="Score ${l.score}/5">${scoreStars(Number(l.score||0))}</div>
+          ${isSigned?'<span class="badge b-green">✓ Signed</span>':''}
+        </div>
+        ${barHtml}
+        <div class="process-label">${isLost?'❌ Lost':l.salesProcess||'—'}${l.interviewDate?' · Interview: '+new Date(l.interviewDate).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}</div>
+        ${l.contractStartDate?`<div class="process-label" style="margin-top:3px">📅 Contract start: ${l.contractStartDate}</div>`:''}
+        ${l.comments?`<div class="lead-comments">"${l.comments}"</div>`:''}
+        <div class="lead-actions">
+          <button class="lead-btn primary" onclick="openEditLeadModal('${l.id}')">✏ Edit</button>
+          ${isSigned?`<button class="lead-btn convert" onclick="convertLeadToTenant('${l.id}')">→ Tenant</button>`:''}
+          <button class="lead-btn danger" onclick="deleteLead('${l.id}')">🗑</button>
+        </div>
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  }
+
+  // Show leads not associated with any vacant property separately
+  el.innerHTML = html;
+}
+
+function togglePropLeads(id, headerEl){
+  const el = document.getElementById(id);
+  const toggle = headerEl.querySelector('.leads-prop-toggle');
+  if(el.style.display==='none'){el.style.display='';toggle.classList.add('open');}
+  else{el.style.display='none';toggle.classList.remove('open');}
+}
+
+function filterLeads(f, el){
+  document.querySelectorAll('#screen-leads .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderLeads(f);
+}
+
+// ─── Lead Modal ───────────────────────────────────────────────────────────────
+let editingLeadId = null;
+
+function openLeadModal(leadId=null){
+  editingLeadId = leadId;
+  const lead = leadId ? STATE.leads.find(l=>String(l.id)===String(leadId)) : null;
+  const vacants = STATE.properties.filter(p=>p.status==='Vacant').map(p=>p.name);
+  const allProps = STATE.properties.map(p=>p.name);
+  const propList = [...new Set([...vacants,...allProps])];
+
+  document.getElementById('modal-title').textContent = lead ? 'Edit Lead' : 'New Lead';
+  document.getElementById('modal-fields').innerHTML = `
+    <div class="field"><label>Full Name *</label><input id="mf-name" type="text" placeholder="e.g. Carlos Mendoza" value="${lead?lead.name||'':''}"/></div>
+    <div class="field"><label>Property Interested In</label><select id="mf-property">${propList.map(p=>`<option ${lead&&lead.property===p?'selected':''}>${p}</option>`).join('')}</select></div>
+    <div class="field"><label>Phone</label><input id="mf-phone" type="tel" placeholder="+1 (555) 000-0000" value="${lead?lead.phone||'':''}"/></div>
+    <div class="field"><label>Email</label><input id="mf-email" type="email" placeholder="email@example.com" value="${lead?lead.email||'':''}"/></div>
+    <div class="field"><label>Interest Level</label><select id="mf-interestLevel">${INTEREST_LEVELS.map(o=>`<option ${lead&&lead.interestLevel===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="field"><label>Qualified Score (1–5)</label><select id="mf-score">${[1,2,3,4,5].map(n=>`<option value="${n}" ${lead&&Number(lead.score)===n?'selected':''}>${n} ${'★'.repeat(n)}</option>`).join('')}</select></div>
+    <div class="field"><label>Status</label><select id="mf-status"><option ${lead&&lead.status==='Active'?'selected':''}>Active</option><option ${lead&&lead.status==='Inactive'?'selected':''}>Inactive</option></select></div>
+    <div class="field"><label>Sales Process</label><select id="mf-salesProcess">${PROCESS_STEPS.map(s=>`<option ${lead&&lead.salesProcess===s?'selected':''}>${s}</option>`).join('')}</select></div>
+    <div class="field"><label>Interview Date & Time</label><input id="mf-interviewDate" type="datetime-local" value="${lead?lead.interviewDate||'':''}"/></div>
+    <div class="field"><label>Contract Start Date Proposed</label><input id="mf-contractStartDate" type="date" value="${lead?lead.contractStartDate||'':''}"/></div>
+    <div class="field"><label>Comments</label><textarea id="mf-comments" placeholder="Notes about this lead...">${lead?lead.comments||'':''}</textarea></div>
+    <div class="field" style="display:flex;align-items:center;gap:10px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;padding:10px 12px">
+      <input id="mf-favorite" type="checkbox" style="width:18px;height:18px;accent-color:var(--gold2)" ${lead&&(lead.favorite==='1'||lead.favorite===true)?'checked':''}/>
+      <label style="font-size:13px;color:var(--text);letter-spacing:.3px;cursor:pointer" for="mf-favorite">⭐ Mark as Favorite</label>
+    </div>
+  `;
+  currentModal = 'lead';
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function openEditLeadModal(leadId){
+  openLeadModal(leadId);
+}
+
+function saveLeadModal(){
+  const name = document.getElementById('mf-name').value.trim();
+  if(!name){toast('Please enter a name');return;}
+  const row = {
+    id: editingLeadId || Date.now(),
+    name, 
+    property: document.getElementById('mf-property').value,
+    phone: document.getElementById('mf-phone').value,
+    email: document.getElementById('mf-email').value,
+    interestLevel: document.getElementById('mf-interestLevel').value,
+    score: document.getElementById('mf-score').value,
+    status: document.getElementById('mf-status').value,
+    salesProcess: document.getElementById('mf-salesProcess').value,
+    interviewDate: document.getElementById('mf-interviewDate').value,
+    contractStartDate: document.getElementById('mf-contractStartDate').value,
+    comments: document.getElementById('mf-comments').value,
+    favorite: document.getElementById('mf-favorite').checked ? '1' : '0',
+  };
+  if(editingLeadId){
+    const idx = STATE.leads.findIndex(l=>String(l.id)===String(editingLeadId));
+    if(idx>-1) STATE.leads[idx]=row;
+  } else {
+    STATE.leads.push(row);
+  }
+  save('leads');
+  pushRow('lead', row);
+  closeModal();
+  renderAll();
+  const navBtn = document.querySelector('.nav-btn[onclick*="leads"]');
+  showScreen('leads', navBtn);
+  toast(editingLeadId ? '✓ Lead updated' : '✓ Lead added');
+}
+
+function deleteLead(id){
+  if(!confirm('Delete this lead?')) return;
+  STATE.leads = STATE.leads.filter(l=>String(l.id)!==String(id));
+  save('leads');
+  renderAll();
+  toast('Lead deleted');
+}
+
+// ─── Convert Lead → Tenant ────────────────────────────────────────────────────
+function convertLeadToTenant(leadId){
+  const lead = STATE.leads.find(l=>String(l.id)===String(leadId));
+  if(!lead){toast('Lead not found');return;}
+  if(lead.salesProcess!=='Contract Signed'){toast('Only signed leads can be converted');return;}
+
+  // Check for duplicate
+  const exists = STATE.tenants.find(t=>t.name===lead.name && t.property===lead.property);
+  if(exists){toast('This lead is already a tenant');return;}
+
+  // Build convert confirm modal
+  document.getElementById('modal-title').textContent = 'Convert to Tenant';
+  document.getElementById('modal-fields').innerHTML = `
+    <div class="convert-box">
+      <div class="convert-title">✓ Contract Signed — Ready to Convert</div>
+      <div class="convert-text">This will create a new tenant record from this lead's information. You can review and adjust details below before saving.</div>
+    </div>
+    <div class="field"><label>Full Name</label><input id="mf-name" type="text" value="${lead.name||''}"/></div>
+    <div class="field"><label>Property</label><select id="mf-property">${STATE.properties.map(p=>`<option ${p.name===lead.property?'selected':''}>${p.name}</option>`).join('')}</select></div>
+    <div class="field"><label>Email</label><input id="mf-email" type="email" value="${lead.email||''}"/></div>
+    <div class="field"><label>Phone</label><input id="mf-phone" type="tel" value="${lead.phone||''}"/></div>
+    <div class="field"><label>Monthly Rent ($)</label><input id="mf-rent" type="number" placeholder="e.g. 1850"/></div>
+    <div class="field"><label>Rent Status</label><select id="mf-rentStatus"><option>On time</option><option>Overdue</option><option>Renewing</option></select></div>
+    <div class="field"><label>Lease Start Date</label><input id="mf-leaseStart" type="date" value="${lead.contractStartDate||''}"/></div>
+    <div class="field"><label>Lease End Date</label><input id="mf-leaseEnd" type="date"/></div>
+    <input type="hidden" id="mf-convertLeadId" value="${leadId}"/>
+  `;
+  currentModal = 'convertLead';
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function saveConvertLeadModal(){
+  const name = document.getElementById('mf-name').value.trim();
+  if(!name){toast('Name is required');return;}
+  const property = document.getElementById('mf-property').value;
+
+  const tenant = {
+    id: Date.now(),
+    name,
+    property,
+    email: document.getElementById('mf-email').value,
+    phone: document.getElementById('mf-phone').value,
+    rent: document.getElementById('mf-rent').value,
+    rentStatus: document.getElementById('mf-rentStatus').value,
+    leaseStart: document.getElementById('mf-leaseStart').value,
+    leaseEnd: document.getElementById('mf-leaseEnd').value,
+  };
+  STATE.tenants.push(tenant);
+  save('tenants');
+
+  // Update property status to Occupied
+  const prop = STATE.properties.find(p=>p.name===property);
+  if(prop){ prop.status='Occupied'; save('properties'); }
+
+  // Mark lead as inactive (converted)
+  const leadId = document.getElementById('mf-convertLeadId').value;
+  const lead = STATE.leads.find(l=>String(l.id)===String(leadId));
+  if(lead){ lead.status='Inactive'; lead.converted='1'; save('leads'); }
+
+  pushRow('tenant', tenant);
+  closeModal();
+  renderAll();
+  const navBtn = document.querySelector('.nav-btn[onclick*="tenants"]');
+  showScreen('tenants', navBtn);
+  toast('✓ Lead converted to tenant!');
+}
+
+// ORIGINAL renderAll replaced above
+function _unused_renderAll_placeholder(){
+  renderDashboard();
+  renderProperties();
+  renderTenants();
+  renderFinance();
+  renderMaintenance();
+  renderInsurance();
+}
+
+// ══════════════════════════════════════════════
+// AGENDA VIEW
+// ══════════════════════════════════════════════
+
+// Color palette per interest level
+const INTEREST_COLORS = {
+  'Very Interested': {bg:'#0F6E56',light:'rgba(15,110,86,0.15)',text:'#5DCAA5'},
+  'Interested':      {bg:'#185FA5',light:'rgba(24,95,165,0.15)',text:'#85B7EB'},
+  'Normal':          {bg:'#3A3F5C',light:'rgba(58,63,92,0.15)',text:'#B8C5D0'},
+  'Low':             {bg:'#7A5500',light:'rgba(122,85,0,0.15)',text:'#F5C85A'},
+  'Very Low':        {bg:'#7A2020',light:'rgba(122,32,32,0.15)',text:'#F09595'},
+};
+
+let agendaDate = new Date(); // current selected date
+
+function agendaDateStr(d){ // YYYY-MM-DD
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function isSameDay(d1, d2){
+  return d1.getFullYear()===d2.getFullYear() && d1.getMonth()===d2.getMonth() && d1.getDate()===d2.getDate();
+}
+
+function isToday(d){ return isSameDay(d, new Date()); }
+
+function agendaShiftDay(delta){
+  agendaDate = new Date(agendaDate);
+  agendaDate.setDate(agendaDate.getDate()+delta);
+  renderAgenda();
+}
+
+function agendaGoToday(){
+  agendaDate = new Date();
+  renderAgenda();
+}
+
+function agendaPickDate(){
+  const picker = document.getElementById('agenda-date-picker');
+  picker.value = agendaDateStr(agendaDate);
+  picker.showPicker ? picker.showPicker() : picker.click();
+}
+
+function agendaDatePicked(val){
+  if(!val) return;
+  const [y,m,d] = val.split('-').map(Number);
+  agendaDate = new Date(y, m-1, d);
+  renderAgenda();
+}
+
+// Build 7-day strip centered on selected date
+function buildWeekStrip(){
+  const strip = document.getElementById('agenda-week-strip');
+  const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  // Get active leads with interview dates
+  const activeLeads = STATE.leads.filter(l=>l.status!=='Inactive' && l.interviewDate);
+
+  let html = '';
+  for(let i=-3; i<=3; i++){
+    const d = new Date(agendaDate);
+    d.setDate(d.getDate()+i);
+    const ds = agendaDateStr(d);
+    const hasSel = isSameDay(d, agendaDate);
+    const hasToday = isToday(d);
+    const hasEvents = activeLeads.some(l=>l.interviewDate && l.interviewDate.startsWith(ds));
+    html += `<div class="week-day ${hasSel?'selected':''} ${hasToday?'today-day':''} ${hasEvents?'has-events':''}"
+      onclick="agendaJumpToDate(${d.getFullYear()},${d.getMonth()},${d.getDate()})">
+      <div class="wd-name">${DAY_NAMES[d.getDay()]}</div>
+      <div class="wd-num">${d.getDate()}</div>
+      <div class="wd-dot"></div>
+    </div>`;
+  }
+  strip.innerHTML = html;
+}
+
+function agendaJumpToDate(y,m,d){
+  agendaDate = new Date(y,m,d);
+  renderAgenda();
+}
+
+function renderAgenda(){
+  const ds = agendaDateStr(agendaDate);
+  const today = new Date();
+  const isTodayFlag = isToday(agendaDate);
+
+  // Date label
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAY_NAMES_LONG = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  document.getElementById('agenda-date-label').textContent =
+    DAY_NAMES_LONG[agendaDate.getDay()] + ', ' + MONTHS[agendaDate.getMonth()] + ' ' + agendaDate.getDate();
+  document.getElementById('agenda-date-sub').textContent = agendaDate.getFullYear() + (isTodayFlag?' · Today':'');
+  const todayBtn = document.getElementById('agenda-today-btn');
+  todayBtn.classList.toggle('is-today', isTodayFlag);
+
+  // Build week strip
+  buildWeekStrip();
+
+  // Filter active leads with interview on this day
+  const dayLeads = STATE.leads.filter(l=>{
+    if(l.status==='Inactive') return false;
+    if(!l.interviewDate) return false;
+    return l.interviewDate.startsWith(ds);
+  });
+
+  // Sort by time
+  dayLeads.sort((a,b)=> a.interviewDate.localeCompare(b.interviewDate));
+
+  document.getElementById('agenda-count').textContent =
+    dayLeads.length===0 ? 'No interviews scheduled' :
+    dayLeads.length + ' interview' + (dayLeads.length===1?'':'s') + ' scheduled';
+
+  const wrap = document.getElementById('agenda-timeline-wrap');
+
+  if(dayLeads.length===0){
+    wrap.innerHTML = `<div class="agenda-empty">
+      <div class="agenda-empty-icon">📅</div>
+      <div class="agenda-empty-title">No interviews today</div>
+      <div class="agenda-empty-text">No active leads have an interview scheduled for this day.<br/>Use the arrows or tap a day above to browse other dates.</div>
+    </div>`;
+    return;
+  }
+
+  // Determine hour range: earliest-1h to latest+1h, min 8–18
+  const parsedTimes = dayLeads.map(l=>{
+    const dt = new Date(l.interviewDate);
+    return {lead:l, dt, hour:dt.getHours(), min:dt.getMinutes()};
+  });
+  const minHour = Math.max(0,  Math.min(8,  Math.min(...parsedTimes.map(p=>p.hour))-1));
+  const maxHour = Math.min(23, Math.max(18, Math.max(...parsedTimes.map(p=>p.hour))+2));
+  const HOUR_HEIGHT = 64; // px per hour
+  const totalHours = maxHour - minHour;
+
+  // Now line position (only if today)
+  let nowLineHtml = '';
+  if(isTodayFlag){
+    const nowHour = today.getHours();
+    const nowMin = today.getMinutes();
+    if(nowHour >= minHour && nowHour <= maxHour){
+      const pct = ((nowHour - minHour) + nowMin/60) / totalHours;
+      const topPx = Math.round(pct * totalHours * HOUR_HEIGHT);
+      nowLineHtml = `<div class="tl-now-line" style="top:${topPx}px">
+        <div class="tl-now-dot"></div>
+        <div class="tl-now-time">${String(nowHour).padStart(2,'0')}:${String(nowMin).padStart(2,'0')}</div>
+      </div>`;
+    }
+  }
+
+  // Build hour rows
+  let hoursHtml = '';
+  for(let h=minHour; h<=maxHour; h++){
+    const label = h===0?'12 AM':h<12?h+' AM':h===12?'12 PM':(h-12)+' PM';
+    hoursHtml += `<div class="timeline-hour" style="height:${HOUR_HEIGHT}px">
+      <div class="tl-label">${label}</div>
+    </div>`;
+  }
+
+  // Build event blocks
+  let eventsHtml = '';
+  parsedTimes.forEach(({lead:l, dt, hour, min})=>{
+    const pct = ((hour - minHour) + min/60) / totalHours;
+    const topPx = Math.round(pct * totalHours * HOUR_HEIGHT);
+    const color = INTEREST_COLORS[l.interestLevel] || INTEREST_COLORS['Normal'];
+    const timeStr = dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
+    const isFav = l.favorite==='1'||l.favorite===true;
+    const heightPx = 72; // fixed 72px block
+
+    eventsHtml += `<div class="agenda-event"
+      style="top:${topPx}px;height:${heightPx}px;background:${color.bg};border-left:3px solid ${color.text}"
+      onclick="showAgendaEventDetail('${l.id}')">
+      <div class="ae-time" style="color:${color.text}">${timeStr}</div>
+      <div class="ae-name">${isFav?'⭐ ':''}${l.name}</div>
+      <div class="ae-prop">${l.property||'—'}</div>
+      <div class="ae-badges">
+        <span class="ae-badge">${l.interestLevel||'—'}</span>
+        <span class="ae-badge">${'★'.repeat(Number(l.score||0))}</span>
+        <span class="ae-badge">${l.salesProcess||'—'}</span>
+      </div>
+    </div>`;
+  });
+
+  wrap.innerHTML = `<div class="timeline" style="height:${totalHours*HOUR_HEIGHT}px;position:relative;">
+    ${hoursHtml}
+    ${nowLineHtml}
+    ${eventsHtml}
+  </div>`;
+}
+
+function showAgendaEventDetail(leadId){
+  const l = STATE.leads.find(x=>String(x.id)===String(leadId));
+  if(!l) return;
+  const dt = new Date(l.interviewDate);
+  const timeStr = dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
+  const dateStr = dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const isFav = l.favorite==='1'||l.favorite===true;
+  const color = INTEREST_COLORS[l.interestLevel] || INTEREST_COLORS['Normal'];
+
+  document.getElementById('modal-title').innerHTML = `<span style="color:${color.text}">${isFav?'⭐ ':''}${l.name}</span>`;
+  document.getElementById('modal-fields').innerHTML = `
+    <div class="event-detail">
+      <div class="ed-prop">📍 ${l.property||'—'}</div>
+      <div class="ed-row"><span class="ed-label">Date</span><span class="ed-value">${dateStr}</span></div>
+      <div class="ed-row"><span class="ed-label">Time</span><span class="ed-value" style="color:${color.text}">${timeStr}</span></div>
+      <div class="ed-row"><span class="ed-label">Interest</span><span class="ed-value">${l.interestLevel||'—'}</span></div>
+      <div class="ed-row"><span class="ed-label">Score</span><span class="ed-value" style="color:var(--gold2)">${'★'.repeat(Number(l.score||0))}${'☆'.repeat(5-Number(l.score||0))}</span></div>
+      <div class="ed-row"><span class="ed-label">Sales Stage</span><span class="ed-value">${l.salesProcess||'—'}</span></div>
+      ${l.phone?`<div class="ed-row"><span class="ed-label">Phone</span><span class="ed-value"><a href="tel:${l.phone}" style="color:var(--blue)">${l.phone}</a></span></div>`:''}
+      ${l.email?`<div class="ed-row"><span class="ed-label">Email</span><span class="ed-value"><a href="mailto:${l.email}" style="color:var(--blue);font-size:11px">${l.email}</a></span></div>`:''}
+      ${l.contractStartDate?`<div class="ed-row"><span class="ed-label">Contract Start</span><span class="ed-value">${l.contractStartDate}</span></div>`:''}
+      ${l.comments?`<div class="lead-comments" style="margin-top:10px">"${l.comments}"</div>`:''}
+    </div>
+  `;
+  // Replace save button with Edit Lead button
+  document.querySelector('.btn-save').textContent = '✏ Edit Lead';
+  document.querySelector('.btn-save').onclick = ()=>{ closeModal(); openEditLeadModal(leadId); };
+  document.querySelector('.btn-cancel').textContent = 'Close';
+  document.querySelector('.btn-cancel').onclick = ()=>{ closeModal(); resetModalBtns(); };
+  currentModal = 'agendaDetail';
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function resetModalBtns(){
+  document.querySelector('.btn-save').textContent = 'Save ✦';
+  document.querySelector('.btn-save').onclick = saveModal;
+  document.querySelector('.btn-cancel').textContent = 'Cancel';
+  document.querySelector('.btn-cancel').onclick = closeModal;
+}
+
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('show');
+  resetModalBtns();
+}
+
+
 
 // ══════════════════════════════════════════════
 // MODAL FORMS
@@ -730,11 +1484,13 @@ function openModal(type){
   document.getElementById('modal-overlay').classList.add('show');
 }
 
-function closeModal(){
-  document.getElementById('modal-overlay').classList.remove('show');
-}
-
 function saveModal(){
+  // Route special modals
+  if(currentModal==='lead'){saveLeadModal();return;}
+  if(currentModal==='convertLead'){saveConvertLeadModal();return;}
+  if(currentModal==='whatsapp'){saveWALead();return;}
+  if(currentModal==='agendaDetail'){return;}
+
   const fields=FIELDS[currentModal]||[];
   const row={id:Date.now()};
   for(const f of fields){
@@ -742,7 +1498,6 @@ function saveModal(){
     if(el) row[f.id]=el.value;
   }
 
-  // Fix: correct key mapping for every type
   const keyMap={
     property:'properties',
     tenant:'tenants',
@@ -753,7 +1508,6 @@ function saveModal(){
   const key=keyMap[currentModal];
   if(!key){toast('Unknown type: '+currentModal);return;}
 
-  // Validate name/description field is not empty
   const firstField=fields[0];
   if(firstField && row[firstField.id] && row[firstField.id].trim()===''){
     toast('Please fill in the required fields');return;
@@ -765,7 +1519,6 @@ function saveModal(){
   closeModal();
   renderAll();
 
-  // Navigate to the relevant screen so user sees the new item
   const screenMap={
     property:'properties',
     tenant:'tenants',
@@ -797,25 +1550,331 @@ document.querySelectorAll('.filter-row').forEach(row=>{
   });
 });
 
+
+// ══════════════════════════════════════════════
+// WHATSAPP AI LEAD PARSER
+// ══════════════════════════════════════════════
+
+let waStep = 'paste'; // 'paste' | 'analyzing' | 'review'
+let waExtracted = null;
+
+function openWAModal(){
+  waStep = 'paste';
+  waExtracted = null;
+  renderWAModal();
+  currentModal = 'whatsapp';
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function renderWAModal(){
+  const vacants = STATE.properties.filter(p=>p.status==='Vacant').map(p=>p.name);
+  const allProps = STATE.properties.map(p=>p.name);
+  const propList = [...new Set([...vacants,...allProps])];
+
+  document.getElementById('modal-title').innerHTML = '<span style="color:#25D366">💬 WhatsApp Lead Import</span>';
+
+  if(waStep==='paste'){
+    document.getElementById('modal-fields').innerHTML = `
+      <div class="wa-modal-header">
+        <span class="wa-modal-icon">💬</span>
+        <div>
+          <div class="wa-modal-label">Paste WhatsApp Conversation</div>
+          <div class="wa-modal-sub">Copy the chat from WhatsApp and paste it below. The AI will extract the lead info automatically.</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>How to copy from WhatsApp on iPhone:</label>
+        <div style="font-size:11px;color:var(--muted);line-height:1.7;padding:8px 10px;background:var(--navy4);border-radius:8px;border:0.5px solid var(--border)">
+          1. Open the WhatsApp chat<br/>
+          2. Tap the contact name at the top<br/>
+          3. Tap <b style="color:var(--text)">Export Chat</b> → <b style="color:var(--text)">Without Media</b><br/>
+          4. Copy the text and paste below<br/>
+          <span style="color:var(--muted);margin-top:4px;display:block">— OR just copy/paste the relevant messages directly —</span>
+        </div>
+      </div>
+      <textarea class="wa-textarea" id="wa-chat-input" placeholder="[3/15/25, 10:23 AM] Carlos Mendoza: Hi, I saw your listing for the 2BR apartment. Is it still available?
+[3/15/25, 10:25 AM] You: Yes it is! It's on Oak Ave, $1,850/mo
+[3/15/25, 10:26 AM] Carlos Mendoza: Great! I'm very interested. My number is +1 555 123 4567..."></textarea>
+      <button class="wa-analyze-btn" onclick="analyzeWAChat()" id="wa-analyze-btn">
+        ✦ Analyze with AI
+      </button>
+    `;
+    document.querySelector('.btn-save').style.display='none';
+    document.querySelector('.btn-cancel').textContent='Cancel';
+    document.querySelector('.btn-cancel').onclick=()=>{closeModal();};
+
+  } else if(waStep==='analyzing'){
+    document.getElementById('modal-fields').innerHTML = `
+      <div class="wa-analyzing">
+        <div class="wa-analyzing-icon">🤖</div>
+        <div class="wa-analyzing-text">Reading conversation…</div>
+        <div class="wa-analyzing-sub">The AI is extracting name, phone, email, property interest, and sentiment from the chat.</div>
+      </div>
+    `;
+    document.querySelector('.btn-save').style.display='none';
+    document.querySelector('.btn-cancel').style.display='none';
+
+  } else if(waStep==='review'){
+    const e = waExtracted;
+    const propOptions = propList.map(p=>`<option value="${p}" ${e.property===p?'selected':''}>${p}</option>`).join('');
+    const interestOpts = ['Very Interested','Interested','Normal','Low','Very Low'].map(o=>`<option ${e.interestLevel===o?'selected':''}>${o}</option>`).join('');
+    const scoreOpts = [1,2,3,4,5].map(n=>`<option value="${n}" ${Number(e.score)===n?'selected':''}>${n} ${'★'.repeat(n)}</option>`).join('');
+    const processOpts = ['Starting','Interview Scheduled','Preparing Documents','Insurance Evaluation','Approved','Contract Signed','Lost'].map(s=>`<option ${e.salesProcess===s?'selected':''}>${s}</option>`).join('');
+
+    document.getElementById('modal-fields').innerHTML = `
+      <div class="wa-result-header">
+        <span style="font-size:18px">✅</span>
+        <div>
+          <div class="wa-result-label">Lead extracted successfully</div>
+          <div style="font-size:11px;color:var(--muted)">Review and adjust before saving</div>
+        </div>
+        <div class="wa-result-conf" style="color:var(--gold2);font-size:11px;font-weight:700">${e.confidence||'—'}% match</div>
+      </div>
+      ${e.aiSummary?`<div style="font-size:11px;color:var(--muted);font-style:italic;padding:8px 10px;background:var(--navy4);border-radius:8px;border:0.5px solid var(--border);margin-bottom:12px;line-height:1.6">"${e.aiSummary}"</div>`:''}
+      <div class="field"><label>Full Name *</label><input class="wa-field-edit" id="mf-name" type="text" value="${e.name||''}"/></div>
+      <div class="field"><label>Phone</label><input class="wa-field-edit" id="mf-phone" type="tel" value="${e.phone||''}"/></div>
+      <div class="field"><label>Email</label><input class="wa-field-edit" id="mf-email" type="email" value="${e.email||''}"/></div>
+      <div class="field"><label>Property Interested In</label><select class="wa-field-edit" id="mf-property">${propOptions}</select></div>
+      <div class="field"><label>Interest Level</label><select class="wa-field-edit" id="mf-interestLevel">${interestOpts}</select></div>
+      <div class="field"><label>Qualified Score (1–5)</label><select class="wa-field-edit" id="mf-score">${scoreOpts}</select></div>
+      <div class="field"><label>Sales Process</label><select class="wa-field-edit" id="mf-salesProcess">${processOpts}</select></div>
+      <div class="field"><label>Comments (AI summary)</label><textarea class="wa-field-edit" id="mf-comments" style="height:70px;resize:none">${e.comments||''}</textarea></div>
+      <div class="field" style="display:flex;align-items:center;gap:10px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;padding:10px 12px">
+        <input id="mf-favorite" type="checkbox" style="width:18px;height:18px;accent-color:var(--gold2)" ${e.favorite==='1'?'checked':''}/>
+        <label style="font-size:13px;color:var(--text);cursor:pointer" for="mf-favorite">⭐ Mark as Favorite</label>
+      </div>
+      <button class="wa-retry-btn" onclick="waStep='paste';renderWAModal()">↩ Paste different chat</button>
+    `;
+    document.querySelector('.btn-save').style.display='';
+    document.querySelector('.btn-save').textContent = '✦ Save Lead';
+    document.querySelector('.btn-save').onclick = saveWALead;
+    document.querySelector('.btn-cancel').style.display='';
+    document.querySelector('.btn-cancel').textContent = 'Cancel';
+    document.querySelector('.btn-cancel').onclick = ()=>{ closeModal(); };
+  }
+}
+
+async function analyzeWAChat(){
+  const chatText = document.getElementById('wa-chat-input').value.trim();
+  if(!chatText || chatText.length < 20){
+    toast('Please paste a WhatsApp conversation first');
+    return;
+  }
+
+  waStep = 'analyzing';
+  renderWAModal();
+
+  const vacants = STATE.properties.filter(p=>p.status==='Vacant').map(p=>p.name);
+  const allProps = STATE.properties.map(p=>p.name);
+  const propList = [...new Set([...vacants,...allProps])];
+
+  const systemPrompt = `You are a real estate CRM assistant for Coronado Nova Realty. 
+Extract lead information from WhatsApp conversations and return ONLY valid JSON with no extra text.
+
+Available properties in our portfolio: ${propList.join(', ')||'(none listed yet)'}
+Vacant properties: ${vacants.join(', ')||'(none)'}
+
+Return this exact JSON structure:
+{
+  "name": "Full name of the interested person",
+  "phone": "Phone number with country code if available",
+  "email": "Email if mentioned, empty string otherwise",
+  "property": "Best matching property name from our list, or what they described",
+  "interestLevel": "One of: Very Interested, Interested, Normal, Low, Very Low — based on tone and language",
+  "score": 3,
+  "salesProcess": "One of: Starting, Interview Scheduled, Preparing Documents, Insurance Evaluation, Approved, Contract Signed, Lost",
+  "comments": "2-3 sentence summary of the conversation and key points",
+  "favorite": "0",
+  "confidence": 85,
+  "aiSummary": "One sentence describing what this lead is about and why you rated them this way"
+}
+
+Rules:
+- score 1-5: 5=very high probability to close, 1=low. Base on enthusiasm, financial readiness signals, urgency
+- confidence: how confident you are about the extraction (0-100)
+- If person seems very eager, mentions budget, timeline, or family situation → higher score
+- If just casual inquiry → score 2-3
+- Match property names to our list when possible`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: `Extract lead info from this WhatsApp conversation:
+
+${chatText}` }]
+      })
+    });
+
+    const data = await response.json();
+    const raw = data.content?.[0]?.text || '';
+
+    // Parse JSON — strip any markdown fences
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+
+    waExtracted = parsed;
+    waStep = 'review';
+    renderWAModal();
+
+  } catch(err) {
+    waStep = 'paste';
+    renderWAModal();
+    toast('AI parsing failed — please try again');
+    console.error(err);
+  }
+}
+
+function saveWALead(){
+  const name = document.getElementById('mf-name').value.trim();
+  if(!name){ toast('Name is required'); return; }
+
+  const lead = {
+    id: Date.now(),
+    name,
+    phone: document.getElementById('mf-phone').value,
+    email: document.getElementById('mf-email').value,
+    property: document.getElementById('mf-property').value,
+    interestLevel: document.getElementById('mf-interestLevel').value,
+    score: document.getElementById('mf-score').value,
+    status: 'Active',
+    salesProcess: document.getElementById('mf-salesProcess').value,
+    comments: document.getElementById('mf-comments').value,
+    favorite: document.getElementById('mf-favorite').checked ? '1' : '0',
+    interviewDate: '',
+    contractStartDate: '',
+    source: 'WhatsApp',
+  };
+
+  STATE.leads.push(lead);
+  save('leads');
+  pushRow('lead', lead);
+  closeModal();
+  renderAll();
+  const navBtn = document.querySelector('.nav-btn[onclick*="leads"]');
+  showScreen('leads', navBtn);
+  toast('✓ WhatsApp lead saved!');
+}
+
+// ══════════════════════════════════════════════
+// PASSWORD PROTECTION
+// ══════════════════════════════════════════════
+// To change the password, edit the line below:
+const APP_PASSWORD = 'CoronadoNova2024';
+
+// Session stays unlocked for 8 hours
+const SESSION_HOURS = 8;
+
+function isUnlocked(){
+  const t = parseInt(localStorage.getItem('cnr_unlock_ts')||'0');
+  return Date.now() - t < SESSION_HOURS * 3600000;
+}
+
+function lockApp(){
+  localStorage.removeItem('cnr_unlock_ts');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-input').value='';
+  document.getElementById('login-error').textContent='';
+  document.getElementById('login-attempts').textContent='';
+}
+
+function unlockApp(){
+  localStorage.setItem('cnr_unlock_ts', Date.now().toString());
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').style.display='flex';
+  renderAll();
+  if(!STATE.scriptUrl){
+    setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),400);
+  } else {
+    syncAll();
+  }
+}
+
+let failCount = parseInt(localStorage.getItem('cnr_fails')||'0');
+let lockUntil = parseInt(localStorage.getItem('cnr_lock_until')||'0');
+
+function submitLogin(){
+  const now = Date.now();
+  if(now < lockUntil){
+    const secs = Math.ceil((lockUntil-now)/1000);
+    document.getElementById('login-error').textContent = 'Too many attempts. Wait '+secs+'s.';
+    return;
+  }
+  const val = document.getElementById('login-input').value;
+  if(val === APP_PASSWORD){
+    failCount=0;
+    localStorage.setItem('cnr_fails','0');
+    localStorage.removeItem('cnr_lock_until');
+    document.getElementById('login-error').textContent='';
+    document.getElementById('login-attempts').textContent='';
+    // Fade out login
+    const ls=document.getElementById('login-screen');
+    ls.style.transition='opacity 0.4s';
+    ls.style.opacity='0';
+    setTimeout(()=>{ ls.classList.add('hidden'); ls.style.opacity=''; unlockApp(); },400);
+  } else {
+    failCount++;
+    localStorage.setItem('cnr_fails', failCount);
+    const wrap = document.getElementById('login-input').parentElement;
+    wrap.classList.remove('shake');
+    void wrap.offsetWidth;
+    wrap.classList.add('shake');
+    document.getElementById('login-input').value='';
+    if(failCount >= 5){
+      const wait = 30000;
+      lockUntil = Date.now() + wait;
+      localStorage.setItem('cnr_lock_until', lockUntil);
+      document.getElementById('login-error').textContent = 'Too many attempts. Locked for 30s.';
+      document.getElementById('login-attempts').textContent='';
+      failCount=0; localStorage.setItem('cnr_fails','0');
+    } else {
+      const rem = 5 - failCount;
+      document.getElementById('login-error').textContent = 'Incorrect password.';
+      document.getElementById('login-attempts').textContent = rem + ' attempt'+(rem===1?'':'s')+' remaining';
+    }
+  }
+}
+
+function toggleEye(){
+  const inp=document.getElementById('login-input');
+  const btn=document.getElementById('eye-btn');
+  if(inp.type==='password'){inp.type='text';btn.textContent='🙈';}
+  else{inp.type='password';btn.textContent='👁';}
+}
+
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
 window.addEventListener('load',()=>{
-  // Try to load logo from same folder (user can replace logo.png)
+  // Logos
   const img=document.getElementById('logo-img');
   img.src='logo.png';
   img.onerror=()=>{img.style.display='none';};
 
-  renderAll();
+  // Hide loading
   setTimeout(()=>{
-    document.getElementById('loading').style.opacity='0';
-    setTimeout(()=>document.getElementById('loading').style.display='none',400);
-  },800);
+    const l=document.getElementById('loading');
+    l.style.transition='opacity 0.4s';
+    l.style.opacity='0';
+    setTimeout(()=>l.style.display='none',400);
+  },700);
 
-  if(!STATE.scriptUrl){
-    setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),1200);
+  // Check session
+  if(isUnlocked()){
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').style.display='flex';
+    renderAll();
+    if(STATE.scriptUrl) syncAll();
+    else setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),500);
   } else {
-    syncAll();
+    document.getElementById('app').style.display='none';
+    // Focus password field after a short delay
+    setTimeout(()=>document.getElementById('login-input').focus(), 800);
   }
 });
 </script>
