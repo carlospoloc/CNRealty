@@ -390,9 +390,13 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
     <div class="screen active" id="screen-dashboard">
       <div id="setup-banner" class="setup-banner">
         <div class="setup-title">⚙ Connect Google Sheet</div>
-        <div class="setup-text">Paste your Apps Script Web App URL below to enable cloud sync. See the README file for setup steps.</div>
+        <div class="setup-text">Paste your Apps Script Web App URL below. Make sure you deployed with <b style="color:var(--gold2)">Anyone</b> access and used the <b style="color:var(--gold2)">new v2 script</b>.</div>
         <input class="setup-input" id="script-url-input" type="url" placeholder="https://script.google.com/macros/s/.../exec"/>
-        <button class="setup-save" onclick="saveScriptUrl()">Save & Connect ✦</button>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="setup-save" style="flex:2" onclick="saveScriptUrl()">Save & Connect ✦</button>
+          <button class="setup-save" style="flex:1;background:rgba(133,183,235,0.1);border-color:rgba(133,183,235,0.4);color:var(--blue)" onclick="testConnection()">Test</button>
+        </div>
+        <div id="connection-status" style="font-size:11px;color:var(--muted);margin-top:6px;min-height:16px"></div>
       </div>
       <div class="page-head"><div><div class="page-title">Portfolio</div><div class="page-sub" id="dash-date">Loading...</div></div></div>
       <div class="stat-grid">
@@ -601,39 +605,104 @@ function today(){const d=new Date();return d.toLocaleDateString('en-US',{month:'
 function daysUntil(dateStr){if(!dateStr)return 9999;const d=new Date(dateStr)-new Date();return Math.ceil(d/86400000)}
 
 // ══════════════════════════════════════════════
-// GOOGLE SHEETS SYNC
+// GOOGLE SHEETS SYNC — robust rewrite
 // ══════════════════════════════════════════════
-async function apiCall(action, data={}){
+
+// All requests use POST with JSON body to avoid:
+//   - URL length limits
+//   - GET caching by Google CDN
+//   - Encoding issues with complex objects
+async function apiCall(action, payload={}){
   if(!STATE.scriptUrl) return null;
   try{
-    const url = STATE.scriptUrl + '?action=' + action + '&data=' + encodeURIComponent(JSON.stringify(data));
-    const res = await fetch(url);
-    return await res.json();
-  } catch(e){ return null; }
+    const res = await fetch(STATE.scriptUrl, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain'}, // text/plain avoids CORS preflight on Apps Script
+      body: JSON.stringify({action, ...payload}),
+      signal: AbortSignal.timeout(12000) // 12s timeout
+    });
+    if(!res.ok) return null;
+    const text = await res.text();
+    return JSON.parse(text);
+  } catch(e){
+    console.warn('apiCall failed:', e.message);
+    return null;
+  }
 }
 
 async function syncAll(){
-  if(!STATE.scriptUrl){showSetupIfNeeded();return;}
-  toast('Syncing…');
-  const res = await apiCall('getAll');
-  if(res && res.success){
-    if(res.properties) {STATE.properties=res.properties; save('properties');}
-    if(res.tenants) {STATE.tenants=res.tenants; save('tenants');}
-    if(res.expenses) {STATE.expenses=res.expenses; save('expenses');}
-    if(res.maintenance) {STATE.maintenance=res.maintenance; save('maintenance');}
-    if(res.insurance) {STATE.insurance=res.insurance; save('insurance');}
-    if(res.leads) {STATE.leads=res.leads; save('leads');}
-    renderAll();
-    toast('✓ Synced with Google Sheets');
-  } else {
-    toast('Using local data (offline)');
+  if(!STATE.scriptUrl){ showSetupIfNeeded(); return; }
+  setSyncStatus('syncing');
+  try{
+    const res = await apiCall('getAll');
+    if(res && res.success){
+      // Only replace a collection if the Sheet returned data for it
+      // (non-null AND either has rows OR the sheet explicitly confirmed empty)
+      const KEYS = ['properties','tenants','expenses','maintenance','insurance','leads'];
+      for(const k of KEYS){
+        if(res[k] !== undefined && res[k] !== null){
+          // Only overwrite local if Sheet has MORE or EQUAL records,
+          // or if local is empty — prevents wipe on first-deploy
+          if(res[k].length > 0 || STATE[k].length === 0){
+            STATE[k] = res[k];
+            save(k);
+          }
+        }
+      }
+      renderAll();
+      setSyncStatus('ok');
+    } else {
+      // Sync failed — keep local data, show warning
+      setSyncStatus('error');
+      renderAll();
+    }
+  } catch(e){
+    setSyncStatus('error');
     renderAll();
   }
 }
 
+// Push full dataset to Sheets (more reliable than row-by-row on add)
 async function pushRow(sheet, row){
   if(!STATE.scriptUrl) return;
-  await apiCall('addRow', {sheet, row});
+  // Push entire collection for reliability (row-by-row GET is unreliable)
+  const SHEET_TO_KEY = {
+    property:'properties', tenant:'tenants', expense:'expenses',
+    maintenance:'maintenance', insurance:'insurance', lead:'leads',
+    // also accept plural forms
+    properties:'properties', tenants:'tenants', expenses:'expenses',
+    leads:'leads', insurance:'insurance'
+  };
+  const key = SHEET_TO_KEY[sheet] || sheet;
+  const rows = STATE[key] || [];
+  setSyncStatus('syncing');
+  apiCall('setAll', {sheet:key, rows}).then(res=>{
+    if(res && res.success) setSyncStatus('ok');
+    else{ console.warn('pushRow failed:', res); setSyncStatus('error'); }
+  }).catch(e=>{ console.warn('pushRow error:', e); setSyncStatus('error'); });
+}
+
+function setSyncStatus(status){
+  const btn = document.querySelector('.sync-btn');
+  if(!btn) return;
+  if(status==='syncing'){
+    btn.innerHTML='<span class="sync-icon" style="animation:spin 0.8s linear infinite;display:inline-block">↻</span> Syncing';
+    btn.style.color='var(--gold2)';
+  } else if(status==='ok'){
+    btn.innerHTML='<span class="sync-icon">✓</span> Synced';
+    btn.style.color='var(--green)';
+    setTimeout(()=>{
+      btn.innerHTML='<span class="sync-icon">↻</span> Sync';
+      btn.style.color='';
+    }, 2500);
+  } else {
+    btn.innerHTML='<span class="sync-icon">⚠</span> Retry';
+    btn.style.color='var(--amber)';
+    setTimeout(()=>{
+      btn.innerHTML='<span class="sync-icon">↻</span> Sync';
+      btn.style.color='';
+    }, 3000);
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -668,12 +737,35 @@ function showSetupIfNeeded(){
 }
 function saveScriptUrl(){
   const v=document.getElementById('script-url-input').value.trim();
-  if(!v){toast('Please enter a valid URL');return;}
+  if(!v||!v.startsWith('https://')){toast('Please enter a valid URL');return;}
   STATE.scriptUrl=v;
   localStorage.setItem('cnr_script_url',v);
   document.getElementById('setup-banner').classList.remove('show');
-  toast('✓ Script URL saved');
+  toast('✓ Script URL saved — syncing…');
   syncAll();
+}
+async function testConnection(){
+  const v=document.getElementById('script-url-input').value.trim();
+  if(!v){toast('Enter a URL first');return;}
+  const statusEl=document.getElementById('connection-status');
+  statusEl.textContent='Testing connection…';
+  statusEl.style.color='var(--muted)';
+  try{
+    // Test with a simple GET ping first
+    const res = await fetch(v, {method:'GET', signal:AbortSignal.timeout(8000)});
+    const text = await res.text();
+    const json = JSON.parse(text);
+    if(json.success){
+      statusEl.textContent='✓ Connection successful! Script is responding.';
+      statusEl.style.color='var(--green)';
+    } else {
+      statusEl.textContent='⚠ Script responded but returned an error: '+(json.error||'unknown');
+      statusEl.style.color='var(--amber)';
+    }
+  } catch(e){
+    statusEl.textContent='✗ Cannot reach script. Check URL and deployment settings.';
+    statusEl.style.color='var(--red)';
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -1794,11 +1886,13 @@ function unlockApp(){
   localStorage.setItem('cnr_unlock_ts', Date.now().toString());
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app').style.display='flex';
+  // Render local data immediately — never show blank app
   renderAll();
   if(!STATE.scriptUrl){
     setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),400);
   } else {
-    syncAll();
+    // Background sync after local render
+    setTimeout(()=>syncAll(), 400);
   }
 }
 
@@ -1875,12 +1969,16 @@ window.addEventListener('load',()=>{
   if(isUnlocked()){
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('app').style.display='flex';
+    // Always render local data first so app is usable immediately
     renderAll();
-    if(STATE.scriptUrl) syncAll();
-    else setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),500);
+    if(STATE.scriptUrl){
+      // Then sync in background — won't block UI
+      setTimeout(()=>syncAll(), 300);
+    } else {
+      setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),500);
+    }
   } else {
     document.getElementById('app').style.display='none';
-    // Focus password field after a short delay
     setTimeout(()=>document.getElementById('login-input').focus(), 800);
   }
 });
