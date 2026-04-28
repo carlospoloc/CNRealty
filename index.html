@@ -379,7 +379,7 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
     </div>
     <div style="display:flex;gap:7px;align-items:center">
       <button class="sync-btn" onclick="syncAll()"><span class="sync-icon">↻</span> Sync</button>
-      <button class="sync-btn" onclick="lockApp()" title="Lock app" style="padding:4px 8px;font-size:13px;">🔒</button>
+      <button class="sync-btn" onclick="openSettings()" title="Settings" style="padding:4px 8px;font-size:15px;">⚙</button>
     </div>
   </div>
 
@@ -560,6 +560,68 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
 
       <!-- Timeline -->
       <div id="agenda-timeline-wrap"></div>
+    </div>
+
+
+    <!-- SETTINGS -->
+    <div class="screen" id="screen-settings">
+      <div class="page-head">
+        <div><div class="page-title">Settings</div><div class="page-sub">App configuration</div></div>
+      </div>
+
+      <!-- Google Sheets connection -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">☁ Google Sheets Sync</div>
+        <div class="field">
+          <label>Apps Script Web App URL</label>
+          <input id="settings-script-url" type="url" style="width:100%;padding:9px 12px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;font-family:'Lato',sans-serif;outline:none" placeholder="https://script.google.com/macros/s/.../exec"/>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button onclick="settingsSaveUrl()" style="flex:2;padding:10px;background:rgba(201,168,76,0.12);border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">Save & Sync ✦</button>
+          <button onclick="settingsTestUrl()" style="flex:1;padding:10px;background:rgba(133,183,235,0.08);border:0.5px solid rgba(133,183,235,0.3);border-radius:8px;color:var(--blue);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">Test</button>
+        </div>
+        <div id="settings-status" style="font-size:11px;margin-top:8px;min-height:16px;color:var(--muted)"></div>
+      </div>
+
+      <!-- Connection info -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:10px">📊 Sync Status</div>
+        <div class="row"><span class="rl">Properties</span><span class="rv v-blue" id="st-props">—</span></div>
+        <div class="row"><span class="rl">Tenants</span><span class="rv v-blue" id="st-tenants">—</span></div>
+        <div class="row"><span class="rl">Leads</span><span class="rv v-blue" id="st-leads">—</span></div>
+        <div class="row"><span class="rl">Expenses</span><span class="rv v-blue" id="st-expenses">—</span></div>
+        <div class="row"><span class="rl">Maintenance</span><span class="rv v-blue" id="st-maint">—</span></div>
+        <div class="row"><span class="rl">Insurance</span><span class="rv v-blue" id="st-ins">—</span></div>
+        <button onclick="syncAll()" style="width:100%;margin-top:12px;padding:10px;background:transparent;border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">↻ Force Full Sync</button>
+      </div>
+
+      <!-- Password change -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">🔐 Change Password</div>
+        <div class="field">
+          <label>Current Password</label>
+          <input id="pw-current" type="password" style="width:100%;padding:9px 12px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;font-family:'Lato',sans-serif;outline:none"/>
+        </div>
+        <div class="field">
+          <label>New Password</label>
+          <input id="pw-new" type="password" style="width:100%;padding:9px 12px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;font-family:'Lato',sans-serif;outline:none"/>
+        </div>
+        <div class="field">
+          <label>Confirm New Password</label>
+          <input id="pw-confirm" type="password" style="width:100%;padding:9px 12px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;font-family:'Lato',sans-serif;outline:none"/>
+        </div>
+        <button onclick="changePassword()" style="width:100%;margin-top:10px;padding:10px;background:rgba(240,149,149,0.08);border:0.5px solid rgba(240,149,149,0.3);border-radius:8px;color:var(--red);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">Update Password</button>
+        <div id="pw-status" style="font-size:11px;margin-top:8px;min-height:16px;color:var(--muted)"></div>
+      </div>
+
+      <!-- App info -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:10px">ℹ App Info</div>
+        <div class="row"><span class="rl">Version</span><span class="rv">2.0</span></div>
+        <div class="row"><span class="rl">Brand</span><span class="rv v-gold">Coronado Nova Realty</span></div>
+        <div class="row"><span class="rl">Session</span><span class="rv v-green">Active (8h)</span></div>
+        <button onclick="lockApp()" style="width:100%;margin-top:12px;padding:10px;background:transparent;border:0.5px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">🔒 Lock App</button>
+      </div>
     </div>
 
   </div><!-- /screens -->
@@ -1859,11 +1921,103 @@ function saveWALead(){
   toast('✓ WhatsApp lead saved!');
 }
 
+
+// ══════════════════════════════════════════════
+// SETTINGS SCREEN
+// ══════════════════════════════════════════════
+function openSettings(){
+  // Pre-fill current URL
+  const urlInput = document.getElementById('settings-script-url');
+  if(urlInput) urlInput.value = STATE.scriptUrl || '';
+  // Fill local record counts
+  document.getElementById('st-props').textContent    = STATE.properties.length + ' records';
+  document.getElementById('st-tenants').textContent  = STATE.tenants.length + ' records';
+  document.getElementById('st-leads').textContent    = STATE.leads.length + ' records';
+  document.getElementById('st-expenses').textContent = STATE.expenses.length + ' records';
+  document.getElementById('st-maint').textContent    = STATE.maintenance.length + ' records';
+  document.getElementById('st-ins').textContent      = STATE.insurance.length + ' records';
+  document.getElementById('settings-status').textContent = '';
+  document.getElementById('pw-status').textContent = '';
+  // Navigate to settings screen (no nav btn — accessed via header)
+  showScreen('settings', null);
+}
+
+async function settingsSaveUrl(){
+  const v = document.getElementById('settings-script-url').value.trim();
+  if(!v || !v.startsWith('https://')){
+    document.getElementById('settings-status').textContent = '✗ Please enter a valid URL starting with https://';
+    document.getElementById('settings-status').style.color = 'var(--red)';
+    return;
+  }
+  STATE.scriptUrl = v;
+  localStorage.setItem('cnr_script_url', v);
+  document.getElementById('settings-status').textContent = '✓ URL saved — syncing now…';
+  document.getElementById('settings-status').style.color = 'var(--green)';
+  // Hide setup banner if visible
+  document.getElementById('setup-banner').classList.remove('show');
+  await syncAll();
+  document.getElementById('settings-status').textContent = '✓ URL saved and sync complete';
+}
+
+async function settingsTestUrl(){
+  const v = document.getElementById('settings-script-url').value.trim();
+  const statusEl = document.getElementById('settings-status');
+  if(!v){ statusEl.textContent = 'Enter a URL first'; return; }
+  statusEl.textContent = 'Testing…';
+  statusEl.style.color = 'var(--muted)';
+  try{
+    const res = await fetch(v, {method:'GET', signal:AbortSignal.timeout(8000)});
+    const json = JSON.parse(await res.text());
+    if(json.success){
+      statusEl.textContent = '✓ Connected! Script is responding correctly.';
+      statusEl.style.color = 'var(--green)';
+    } else {
+      statusEl.textContent = '⚠ Script responded with error: '+(json.error||'unknown');
+      statusEl.style.color = 'var(--amber)';
+    }
+  } catch(e){
+    statusEl.textContent = '✗ Cannot reach script. Check URL & deployment settings.';
+    statusEl.style.color = 'var(--red)';
+  }
+}
+
+function changePassword(){
+  const current  = document.getElementById('pw-current').value;
+  const newPw    = document.getElementById('pw-new').value;
+  const confirm  = document.getElementById('pw-confirm').value;
+  const statusEl = document.getElementById('pw-status');
+  if(current !== APP_PASSWORD){
+    statusEl.textContent = '✗ Current password is incorrect';
+    statusEl.style.color = 'var(--red)'; return;
+  }
+  if(newPw.length < 6){
+    statusEl.textContent = '✗ New password must be at least 6 characters';
+    statusEl.style.color = 'var(--red)'; return;
+  }
+  if(newPw !== confirm){
+    statusEl.textContent = '✗ Passwords do not match';
+    statusEl.style.color = 'var(--red)'; return;
+  }
+  // Store new password in localStorage so it persists
+  localStorage.setItem('cnr_custom_pw', newPw);
+  // Reload APP_PASSWORD value
+  window._customPw = newPw;
+  statusEl.textContent = '✓ Password updated successfully';
+  statusEl.style.color = 'var(--green)';
+  document.getElementById('pw-current').value = '';
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-confirm').value = '';
+}
 // ══════════════════════════════════════════════
 // PASSWORD PROTECTION
 // ══════════════════════════════════════════════
 // To change the password, edit the line below:
-const APP_PASSWORD = 'CoronadoNova2024';
+// Password — reads custom password from localStorage if set (via Settings screen)
+const APP_PASSWORD_DEFAULT = 'CoronadoNova2024';
+// Use a getter pattern so submitLogin always reads the latest value
+function getAppPassword(){
+  return localStorage.getItem('cnr_custom_pw') || APP_PASSWORD_DEFAULT;
+}
 
 // Session stays unlocked for 8 hours
 const SESSION_HOURS = 8;
@@ -1907,7 +2061,7 @@ function submitLogin(){
     return;
   }
   const val = document.getElementById('login-input').value;
-  if(val === APP_PASSWORD){
+  if(val === getAppPassword()){
     failCount=0;
     localStorage.setItem('cnr_fails','0');
     localStorage.removeItem('cnr_lock_until');
