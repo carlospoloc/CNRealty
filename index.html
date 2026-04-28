@@ -514,9 +514,14 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
         <div class="stat"><div class="stat-label">Favorites</div><div class="stat-value v-gold" id="l-favs">—</div></div>
         <div class="stat"><div class="stat-label">Signed</div><div class="stat-value v-amber" id="l-signed">—</div></div>
       </div>
-      <button class="wa-btn" onclick="openWAModal()">
-        <span class="wa-btn-icon">💬</span> Import Lead from WhatsApp Chat
-      </button>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="wa-btn" style="margin-bottom:0;flex:1" onclick="openWAModal()">
+          <span class="wa-btn-icon">💬</span> WhatsApp Import
+        </button>
+        <button onclick="showScreen('agenda',document.querySelector('.nav-btn[onclick*=agenda]'));renderAgenda()" style="padding:12px 14px;border:0.5px solid var(--border2);border-radius:12px;background:rgba(201,168,76,0.07);color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">
+          📅 Agenda
+        </button>
+      </div>
       <div class="filter-row">
         <div class="chip active" onclick="filterLeads('all',this)">All</div>
         <div class="chip" onclick="filterLeads('active',this)">Active</div>
@@ -560,7 +565,7 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
     <button class="nav-btn active" onclick="showScreen('dashboard',this)"><span class="nav-icon">⊞</span>Home<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('properties',this)"><span class="nav-icon">⌂</span>Props<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('leads',this)"><span class="nav-icon">🎯</span>Leads<div class="nav-dot"></div></button>
-    <button class="nav-btn" onclick="showScreen('agenda',this);renderAgenda()"><span class="nav-icon">📅</span>Agenda<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="showScreen('tenants',this)"><span class="nav-icon">♟</span>Tenants<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('finance',this)"><span class="nav-icon">◈</span>Finance<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('insurance',this)"><span class="nav-icon">✦</span>Insure<div class="nav-dot"></div></button>
   </div>
@@ -1170,15 +1175,6 @@ function saveConvertLeadModal(){
   toast('✓ Lead converted to tenant!');
 }
 
-// ORIGINAL renderAll replaced above
-function _unused_renderAll_placeholder(){
-  renderDashboard();
-  renderProperties();
-  renderTenants();
-  renderFinance();
-  renderMaintenance();
-  renderInsurance();
-}
 
 // ══════════════════════════════════════════════
 // AGENDA VIEW
@@ -1400,10 +1396,18 @@ function showAgendaEventDetail(leadId){
 }
 
 function resetModalBtns(){
-  document.querySelector('.btn-save').textContent = 'Save ✦';
-  document.querySelector('.btn-save').onclick = saveModal;
-  document.querySelector('.btn-cancel').textContent = 'Cancel';
-  document.querySelector('.btn-cancel').onclick = closeModal;
+  const btnSave = document.querySelector('.btn-save');
+  const btnCancel = document.querySelector('.btn-cancel');
+  if(btnSave){
+    btnSave.textContent = 'Save ✦';
+    btnSave.onclick = saveModal;
+    btnSave.style.display = '';
+  }
+  if(btnCancel){
+    btnCancel.textContent = 'Cancel';
+    btnCancel.onclick = closeModal;
+    btnCancel.style.display = '';
+  }
 }
 
 function closeModal(){
@@ -1509,7 +1513,7 @@ function saveModal(){
   if(!key){toast('Unknown type: '+currentModal);return;}
 
   const firstField=fields[0];
-  if(firstField && row[firstField.id] && row[firstField.id].trim()===''){
+  if(firstField && (!row[firstField.id] || row[firstField.id].trim()==='') ){
     toast('Please fill in the required fields');return;
   }
 
@@ -1599,9 +1603,10 @@ function renderWAModal(){
         ✦ Analyze with AI
       </button>
     `;
-    document.querySelector('.btn-save').style.display='none';
-    document.querySelector('.btn-cancel').textContent='Cancel';
-    document.querySelector('.btn-cancel').onclick=()=>{closeModal();};
+    const _bs=document.querySelector('.btn-save');
+    const _bc=document.querySelector('.btn-cancel');
+    if(_bs){_bs.style.display='none';}
+    if(_bc){_bc.style.display='';_bc.textContent='Cancel';_bc.onclick=()=>{closeModal();};}
 
   } else if(waStep==='analyzing'){
     document.getElementById('modal-fields').innerHTML = `
@@ -1611,8 +1616,10 @@ function renderWAModal(){
         <div class="wa-analyzing-sub">The AI is extracting name, phone, email, property interest, and sentiment from the chat.</div>
       </div>
     `;
-    document.querySelector('.btn-save').style.display='none';
-    document.querySelector('.btn-cancel').style.display='none';
+    const _bs2=document.querySelector('.btn-save');
+    const _bc2=document.querySelector('.btn-cancel');
+    if(_bs2) _bs2.style.display='none';
+    if(_bc2) _bc2.style.display='none';
 
   } else if(waStep==='review'){
     const e = waExtracted;
