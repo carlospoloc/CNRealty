@@ -451,26 +451,62 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
     <div class="screen" id="screen-finance">
       <div class="page-head">
         <div><div class="page-title">Finance</div><div class="page-sub" id="fin-period">April 2026</div></div>
-        <button class="page-add" onclick="openModal('expense')">+ Expense</button>
       </div>
+      <!-- Summary stats -->
       <div class="stat-grid">
-        <div class="stat"><div class="stat-label">Income</div><div class="stat-value v-green" id="f-income">—</div></div>
-        <div class="stat"><div class="stat-label">Expenses</div><div class="stat-value v-amber" id="f-expenses">—</div></div>
-        <div class="stat"><div class="stat-label">Net profit</div><div class="stat-value v-gold" id="f-profit">—</div></div>
+        <div class="stat"><div class="stat-label">Total Income</div><div class="stat-value v-green" id="f-income">—</div></div>
+        <div class="stat"><div class="stat-label">Total Expenses</div><div class="stat-value v-amber" id="f-expenses">—</div></div>
+        <div class="stat"><div class="stat-label">Net Profit</div><div class="stat-value v-gold" id="f-profit">—</div></div>
         <div class="stat"><div class="stat-label">Outstanding</div><div class="stat-value v-red" id="f-outstanding">—</div></div>
       </div>
-      <div class="card">
-        <div class="card-title" style="margin-bottom:10px">Rent Collection</div>
-        <div class="row"><span class="rl">Collected</span><span class="rv v-green" id="f-collected">—</span></div>
-        <div class="progress-bar"><div class="progress-fill" id="f-progress" style="width:0%"></div></div>
-        <div style="margin-top:10px"></div>
-        <div class="row"><span class="rl">Late payments</span><span class="rv v-amber" id="f-late">—</span></div>
+      <!-- Action buttons -->
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button onclick="openModal('income')" style="flex:1;padding:11px;background:rgba(93,202,165,0.1);border:0.5px solid rgba(93,202,165,0.35);border-radius:10px;color:var(--green);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.4px;display:flex;align-items:center;justify-content:center;gap:6px">+ Log Income</button>
+        <button onclick="openModal('expense')" style="flex:1;padding:11px;background:rgba(240,149,149,0.08);border:0.5px solid rgba(240,149,149,0.35);border-radius:10px;color:var(--red);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.4px;display:flex;align-items:center;justify-content:center;gap:6px">+ Log Expense</button>
       </div>
-      <div class="card">
-        <div class="card-title" style="margin-bottom:10px">Recent Expenses</div>
-        <div id="exp-list"></div>
+      <!-- Finance filter tabs -->
+      <div class="filter-row" style="margin-bottom:12px">
+        <div class="chip active" onclick="switchFinTab('summary',this)">Summary</div>
+        <div class="chip" onclick="switchFinTab('income',this)">Income</div>
+        <div class="chip" onclick="switchFinTab('expenses',this)">Expenses</div>
+        <div class="chip" onclick="switchFinTab('rent',this)">Rent</div>
       </div>
-      <button class="add-btn" onclick="openModal('expense')">+ Log expense</button>
+      <!-- Summary tab -->
+      <div id="fin-tab-summary">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px">Rent Collection</div>
+          <div class="row"><span class="rl">Collected this month</span><span class="rv v-green" id="f-collected">—</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="f-progress" style="width:0%"></div></div>
+          <div style="margin-top:10px"></div>
+          <div class="row"><span class="rl">Late payments</span><span class="rv v-amber" id="f-late">—</span></div>
+          <div class="row"><span class="rl">Outstanding rent</span><span class="rv v-red" id="f-outstanding-detail">—</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px">Recent Activity</div>
+          <div id="fin-recent-list"></div>
+        </div>
+      </div>
+      <!-- Income tab -->
+      <div id="fin-tab-income" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px">Income Records</div>
+          <div id="income-list"></div>
+        </div>
+      </div>
+      <!-- Expenses tab -->
+      <div id="fin-tab-expenses" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px">Expense Records</div>
+          <div id="exp-list"></div>
+        </div>
+      </div>
+      <!-- Rent tab -->
+      <div id="fin-tab-rent" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px">Rent by Tenant</div>
+          <div id="rent-list"></div>
+        </div>
+      </div>
     </div>
 
     <!-- MAINTENANCE -->
@@ -649,6 +685,7 @@ const STATE = {
   maintenance: JSON.parse(localStorage.getItem('cnr_maintenance') || '[]'),
   insurance: JSON.parse(localStorage.getItem('cnr_insurance') || '[]'),
   leads: JSON.parse(localStorage.getItem('cnr_leads') || '[]'),
+  incomes: JSON.parse(localStorage.getItem('cnr_incomes') || '[]'),
 };
 
 const AVATARCOLORS = [
@@ -676,18 +713,29 @@ function daysUntil(dateStr){if(!dateStr)return 9999;const d=new Date(dateStr)-ne
 //   - Encoding issues with complex objects
 async function apiCall(action, payload={}){
   if(!STATE.scriptUrl) return null;
+  // Use manual AbortController instead of AbortSignal.timeout()
+  // — AbortSignal.timeout() is not supported on all iPhone/Safari versions
+  // and causes "cannot be cloned" errors in some WebViews
+  const controller = new AbortController();
+  const timeoutId  = setTimeout(()=>controller.abort(), 12000);
   try{
     const res = await fetch(STATE.scriptUrl, {
       method:'POST',
-      headers:{'Content-Type':'text/plain'}, // text/plain avoids CORS preflight on Apps Script
+      headers:{'Content-Type':'text/plain'},
       body: JSON.stringify({action, ...payload}),
-      signal: AbortSignal.timeout(12000) // 12s timeout
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     if(!res.ok) return null;
     const text = await res.text();
     return JSON.parse(text);
   } catch(e){
-    console.warn('apiCall failed:', e.message);
+    clearTimeout(timeoutId);
+    if(e.name === 'AbortError'){
+      console.warn('apiCall timed out after 12s');
+    } else {
+      console.warn('apiCall failed:', e.message);
+    }
     return null;
   }
 }
@@ -700,7 +748,7 @@ async function syncAll(){
     if(res && res.success){
       // Only replace a collection if the Sheet returned data for it
       // (non-null AND either has rows OR the sheet explicitly confirmed empty)
-      const KEYS = ['properties','tenants','expenses','maintenance','insurance','leads'];
+      const KEYS = ['properties','tenants','expenses','maintenance','insurance','leads','incomes'];
       for(const k of KEYS){
         if(res[k] !== undefined && res[k] !== null){
           // Only overwrite local if Sheet has MORE or EQUAL records,
@@ -730,10 +778,9 @@ async function pushRow(sheet, row){
   // Push entire collection for reliability (row-by-row GET is unreliable)
   const SHEET_TO_KEY = {
     property:'properties', tenant:'tenants', expense:'expenses',
-    maintenance:'maintenance', insurance:'insurance', lead:'leads',
-    // also accept plural forms
+    maintenance:'maintenance', insurance:'insurance', lead:'leads', income:'incomes',
     properties:'properties', tenants:'tenants', expenses:'expenses',
-    leads:'leads', insurance:'insurance'
+    leads:'leads', incomes:'incomes'
   };
   const key = SHEET_TO_KEY[sheet] || sheet;
   const rows = STATE[key] || [];
@@ -814,7 +861,10 @@ async function testConnection(){
   statusEl.style.color='var(--muted)';
   try{
     // Test with a simple GET ping first
-    const res = await fetch(v, {method:'GET', signal:AbortSignal.timeout(8000)});
+    const testController = new AbortController();
+    const testTimeout = setTimeout(()=>testController.abort(), 8000);
+    const res = await fetch(v, {method:'GET', signal:testController.signal});
+    clearTimeout(testTimeout);
     const text = await res.text();
     const json = JSON.parse(text);
     if(json.success){
@@ -903,6 +953,10 @@ function renderProperties(filter='all'){
       <div class="row"><span class="rl">Rent</span><span class="rv v-gold">${p.rent?fmt(p.rent)+'/mo':'—'}</span></div>
       <div class="row"><span class="rl">Tenant</span><span class="rv">${tenant?tenant.name:(p.status==='Vacant'?'Vacant':'—')}</span></div>
       ${p.leaseEnd?`<div class="row"><span class="rl">Lease ends</span><span class="rv">${p.leaseEnd}</span></div>`:''}
+      <div class="lead-actions" style="margin-top:10px">
+        <button class="lead-btn primary" onclick="openEditModal('property','${p.id}')">✏ Edit</button>
+        <button class="lead-btn danger" onclick="deleteRecord('property','${p.id}')">🗑 Delete</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -923,20 +977,27 @@ function renderTenants(filter='all'){
     el.innerHTML=`<div class="empty"><div class="empty-icon">♟</div><div class="empty-text">No tenants yet.<br/>Tap + Add to get started.</div></div>`;
     return;
   }
-  const card = `<div class="card" style="padding:10px 14px">`+
-    list.map((t,i)=>{
-      const ac=avatarColor(i);
-      const bc=t.rentStatus==='On time'?'b-green':t.rentStatus==='Overdue'?'b-amber':t.rentStatus==='Renewing'?'b-gold':'b-gray';
-      return `<div class="t-row">
+  el.innerHTML = list.map((t,i)=>{
+    const ac=avatarColor(i);
+    const bc=t.rentStatus==='On time'?'b-green':t.rentStatus==='Overdue'?'b-amber':t.rentStatus==='Renewing'?'b-gold':'b-gray';
+    return `<div class="card" style="padding:10px 14px">
+      <div class="t-row" style="border-bottom:0.5px solid rgba(255,255,255,0.05);padding-bottom:10px;margin-bottom:8px">
         <div class="avatar" style="background:${ac.bg};color:${ac.c}">${initials(t.name)}</div>
         <div style="flex:1">
           <div class="t-name">${t.name}</div>
           <div class="t-detail">${t.property||'—'} · ${t.phone||t.email||''}</div>
         </div>
         <span class="badge ${bc}">${t.rentStatus||'—'}</span>
-      </div>`;
-    }).join('')+'</div>';
-  el.innerHTML=card;
+      </div>
+      <div class="row"><span class="rl">Rent</span><span class="rv v-gold">${t.rent?fmt(t.rent)+'/mo':'—'}</span></div>
+      ${t.leaseEnd?`<div class="row"><span class="rl">Lease ends</span><span class="rv">${t.leaseEnd}</span></div>`:''}
+      ${t.email?`<div class="row"><span class="rl">Email</span><span class="rv" style="font-size:11px">${t.email}</span></div>`:''}
+      <div class="lead-actions" style="margin-top:8px">
+        <button class="lead-btn primary" onclick="openEditModal('tenant','${t.id}')">✏ Edit</button>
+        <button class="lead-btn danger" onclick="deleteRecord('tenant','${t.id}')">🗑 Delete</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 function filterTenants(f,el){
   document.querySelectorAll('#screen-tenants .chip').forEach(c=>c.classList.remove('active'));
@@ -948,35 +1009,129 @@ function filterTenants(f,el){
 // RENDER FINANCE
 // ══════════════════════════════════════════════
 function renderFinance(){
-  const tenants=STATE.tenants, expenses=STATE.expenses;
-  document.getElementById('fin-period').textContent=today();
-  const income=tenants.filter(t=>t.rentStatus==='On time').reduce((a,t)=>a+Number(t.rent||0),0);
-  const totalExp=expenses.reduce((a,e)=>a+Number(e.amount||0),0);
-  const outstanding=tenants.filter(t=>t.rentStatus==='Overdue').reduce((a,t)=>a+Number(t.rent||0),0);
-  const collected=tenants.filter(t=>t.rentStatus==='On time').length;
-  const total=tenants.length;
-  const pct=total?Math.round(collected/total*100):0;
+  const tenants  = STATE.tenants;
+  const expenses = STATE.expenses;
+  const incomes  = STATE.incomes || [];
+  document.getElementById('fin-period').textContent = today();
 
-  document.getElementById('f-income').textContent=fmt(income);
-  document.getElementById('f-expenses').textContent=fmt(totalExp);
-  document.getElementById('f-profit').textContent=fmt(income-totalExp);
-  document.getElementById('f-outstanding').textContent=fmt(outstanding);
-  document.getElementById('f-collected').textContent=collected+' / '+total;
-  document.getElementById('f-progress').style.width=pct+'%';
-  document.getElementById('f-late').textContent=tenants.filter(t=>t.rentStatus==='Overdue').length;
+  // Income = manual income records + rent from on-time tenants
+  const rentIncome  = tenants.filter(t=>t.rentStatus==='On time').reduce((a,t)=>a+Number(t.rent||0),0);
+  const manualIncome= incomes.reduce((a,i)=>a+Number(i.amount||0),0);
+  const totalIncome = rentIncome + manualIncome;
+  const totalExp    = expenses.reduce((a,e)=>a+Number(e.amount||0),0);
+  const outstanding = tenants.filter(t=>t.rentStatus==='Overdue').reduce((a,t)=>a+Number(t.rent||0),0);
+  const collected   = tenants.filter(t=>t.rentStatus==='On time').length;
+  const total       = tenants.length;
+  const pct         = total ? Math.round(collected/total*100) : 0;
 
-  const expEl=document.getElementById('exp-list');
-  const recent=expenses.slice(-5).reverse();
-  if(recent.length===0){expEl.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">No expenses logged yet.</div>';return;}
-  expEl.innerHTML=recent.map(e=>`
-    <div class="exp-row">
-      <div class="exp-icon" style="background:rgba(201,168,76,0.1)">💳</div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:700;color:var(--text)">${e.description||'Expense'}</div>
-        <div style="font-size:11px;color:var(--muted)">${e.property||'—'} · ${e.date||''}</div>
-      </div>
-      <span style="font-size:13px;font-weight:700;color:var(--red)">-${fmt(e.amount)}</span>
-    </div>`).join('');
+  document.getElementById('f-income').textContent     = fmt(totalIncome);
+  document.getElementById('f-expenses').textContent   = fmt(totalExp);
+  document.getElementById('f-profit').textContent     = fmt(totalIncome - totalExp);
+  document.getElementById('f-outstanding').textContent= fmt(outstanding);
+  document.getElementById('f-collected').textContent  = collected + ' / ' + total;
+  document.getElementById('f-progress').style.width   = pct + '%';
+  document.getElementById('f-late').textContent       = tenants.filter(t=>t.rentStatus==='Overdue').length;
+  document.getElementById('f-outstanding-detail').textContent = fmt(outstanding);
+
+  // ── Recent Activity (combined income + expenses, sorted by date) ──────────
+  const recentEl = document.getElementById('fin-recent-list');
+  const combined = [
+    ...incomes.map(i=>({...i, _type:'income'})),
+    ...expenses.map(e=>({...e, _type:'expense'}))
+  ].sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,6);
+  if(combined.length===0){
+    recentEl.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">No transactions yet.</div>';
+  } else {
+    recentEl.innerHTML = combined.map(r=>`
+      <div class="exp-row">
+        <div class="exp-icon" style="background:${r._type==='income'?'rgba(93,202,165,0.1)':'rgba(240,149,149,0.1)'}">
+          ${r._type==='income'?'💚':'💳'}
+        </div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${r.description||'—'}</div>
+          <div style="font-size:11px;color:var(--muted)">${r.property||'—'} · ${r.date||''} · ${r.category||''}</div>
+        </div>
+        <span style="font-size:13px;font-weight:700;color:${r._type==='income'?'var(--green)':'var(--red)'}">
+          ${r._type==='income'?'+':'-'}${fmt(r.amount)}
+        </span>
+      </div>`).join('');
+  }
+
+  // ── Income list ────────────────────────────────────────────────────────────
+  const incomeEl = document.getElementById('income-list');
+  if(incomes.length===0){
+    incomeEl.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">No income records yet. Tap + Log Income to add one.</div>';
+  } else {
+    incomeEl.innerHTML = [...incomes].reverse().map(i=>`
+      <div class="exp-row">
+        <div class="exp-icon" style="background:rgba(93,202,165,0.1)">💚</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${i.description||'—'}</div>
+          <div style="font-size:11px;color:var(--muted)">${i.property||'—'} · ${i.date||''} · ${i.category||''}</div>
+          ${i.notes?`<div style="font-size:10px;color:var(--muted);font-style:italic">${i.notes}</div>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+          <span style="font-size:13px;font-weight:700;color:var(--green)">+${fmt(i.amount)}</span>
+          <div style="display:flex;gap:5px">
+            <button class="lead-btn primary" style="padding:3px 8px;font-size:10px" onclick="openEditModal('income','${i.id}')">✏</button>
+            <button class="lead-btn danger" style="padding:3px 8px;font-size:10px" onclick="deleteRecord('income','${i.id}')">🗑</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── Expenses list ──────────────────────────────────────────────────────────
+  const expEl = document.getElementById('exp-list');
+  if(expenses.length===0){
+    expEl.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">No expenses logged yet.</div>';
+  } else {
+    expEl.innerHTML = [...expenses].reverse().map(e=>`
+      <div class="exp-row">
+        <div class="exp-icon" style="background:rgba(201,168,76,0.1)">💳</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${e.description||'Expense'}</div>
+          <div style="font-size:11px;color:var(--muted)">${e.property||'—'} · ${e.date||''} · ${e.category||''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+          <span style="font-size:13px;font-weight:700;color:var(--red)">-${fmt(e.amount)}</span>
+          <div style="display:flex;gap:5px">
+            <button class="lead-btn primary" style="padding:3px 8px;font-size:10px" onclick="openEditModal('expense','${e.id}')">✏</button>
+            <button class="lead-btn danger" style="padding:3px 8px;font-size:10px" onclick="deleteRecord('expense','${e.id}')">🗑</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── Rent by tenant ─────────────────────────────────────────────────────────
+  const rentEl = document.getElementById('rent-list');
+  if(tenants.length===0){
+    rentEl.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">No tenants yet.</div>';
+  } else {
+    rentEl.innerHTML = tenants.map((t,i)=>{
+      const ac = avatarColor(i);
+      const bc = t.rentStatus==='On time'?'b-green':t.rentStatus==='Overdue'?'b-red':'b-amber';
+      return `<div class="exp-row">
+        <div class="avatar" style="background:${ac.bg};color:${ac.c};width:32px;height:32px;font-size:10px;flex-shrink:0">${initials(t.name)}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${t.name}</div>
+          <div style="font-size:11px;color:var(--muted)">${t.property||'—'}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span style="font-size:13px;font-weight:700;color:var(--gold2)">${t.rent?fmt(t.rent)+'/mo':'—'}</span>
+          <span class="badge ${bc}">${t.rentStatus||'—'}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function switchFinTab(tab, el){
+  ['summary','income','expenses','rent'].forEach(t=>{
+    const el2 = document.getElementById('fin-tab-'+t);
+    if(el2) el2.style.display = t===tab ? '' : 'none';
+  });
+  document.querySelectorAll('#screen-finance .chip').forEach(c=>c.classList.remove('active'));
+  if(el) el.classList.add('active');
 }
 
 // ══════════════════════════════════════════════
@@ -1000,6 +1155,10 @@ function renderMaintenance(filter='all'){
       </div>
       ${m.description?`<div class="row"><span class="rl">Details</span><span class="rv" style="font-size:11px;text-align:right;max-width:200px">${m.description}</span></div>`:''}
       ${m.date?`<div class="row"><span class="rl">Reported</span><span class="rv">${m.date}</span></div>`:''}
+      <div class="lead-actions" style="margin-top:8px">
+        <button class="lead-btn primary" onclick="openEditModal('maintenance','${m.id}')">✏ Edit</button>
+        <button class="lead-btn danger" onclick="deleteRecord('maintenance','${m.id}')">🗑 Delete</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1040,6 +1199,10 @@ function renderInsurance(){
       <div class="row"><span class="rl">Coverage</span><span class="rv v-gold">${i.coverage?fmt(i.coverage):'—'}</span></div>
       ${i.premium?`<div class="row"><span class="rl">Premium</span><span class="rv">${i.premiumCycle==='Monthly'?'$'+i.premium+'/mo':fmt(i.premium)+'/yr'}</span></div>`:''}
       <div class="row"><span class="rl">Expires</span><span class="rv ${bc.replace('b-','v-')}">${exp}</span></div>
+      <div class="lead-actions" style="margin-top:8px">
+        <button class="lead-btn primary" onclick="openEditModal('insurance','${i.id}')">✏ Edit</button>
+        <button class="lead-btn danger" onclick="deleteRecord('insurance','${i.id}')">🗑 Delete</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1611,6 +1774,14 @@ const FIELDS = {
     {id:'status',label:'Status',type:'select',options:['Urgent','Pending','Scheduled','Resolved']},
     {id:'date',label:'Reported Date',type:'date'},
   ],
+  income:[
+    {id:'description',label:'Description',type:'text',placeholder:'e.g. Rent payment - April'},
+    {id:'property',label:'Property',type:'select',options:()=>['— Select —',...PROP_NAMES()]},
+    {id:'amount',label:'Amount ($)',type:'number',placeholder:'e.g. 1850'},
+    {id:'category',label:'Category',type:'select',options:['Rent','Deposit','Late Fee','Other Income']},
+    {id:'date',label:'Date',type:'date'},
+    {id:'notes',label:'Notes',type:'text',placeholder:'Optional notes'},
+  ],
   insurance:[
     {id:'name',label:'Property / Tenant Name',type:'text',placeholder:'e.g. Maple Street #3'},
     {id:'type',label:'Policy Type',type:'select',options:['Property','Tenant']},
@@ -1648,6 +1819,7 @@ function saveModal(){
   if(currentModal==='convertLead'){saveConvertLeadModal();return;}
   if(currentModal==='whatsapp'){saveWALead();return;}
   if(currentModal==='agendaDetail'){return;}
+  if(currentModal==='editRecord'){saveEditRecord();return;}
 
   const fields=FIELDS[currentModal]||[];
   const row={id:Date.now()};
@@ -1660,6 +1832,7 @@ function saveModal(){
     property:'properties',
     tenant:'tenants',
     expense:'expenses',
+    income:'incomes',
     maintenance:'maintenance',
     insurance:'insurance'
   };
@@ -1681,6 +1854,7 @@ function saveModal(){
     property:'properties',
     tenant:'tenants',
     expense:'finance',
+    income:'finance',
     maintenance:'maintenance',
     insurance:'insurance'
   };
@@ -1922,6 +2096,123 @@ function saveWALead(){
 }
 
 
+
+// ══════════════════════════════════════════════
+// GENERIC EDIT & DELETE FOR ALL RECORD TYPES
+// ══════════════════════════════════════════════
+let editingRecordType = null;
+let editingRecordId   = null;
+
+function openEditModal(type, id){
+  editingRecordType = type;
+  editingRecordId   = String(id);
+
+  // Find the record
+  const KEY_MAP = {
+    property:'properties', tenant:'tenants',
+    expense:'expenses',    income:'incomes',
+    maintenance:'maintenance', insurance:'insurance'
+  };
+  const key = KEY_MAP[type];
+  const record = (STATE[key]||[]).find(r=>String(r.id)===String(id));
+  if(!record){ toast('Record not found'); return; }
+
+  // Build title
+  const titles = {
+    property:'Edit Property', tenant:'Edit Tenant',
+    expense:'Edit Expense',   maintenance:'Edit Maintenance',
+    insurance:'Edit Insurance Policy'
+  };
+  document.getElementById('modal-title').textContent = titles[type]||'Edit';
+
+  // Build fields using FIELDS definition — pre-fill with record values
+  const fields = FIELDS[type]||[];
+  document.getElementById('modal-fields').innerHTML = fields.map(f=>{
+    const val = record[f.id] !== undefined ? record[f.id] : '';
+    const opts = typeof f.options==='function' ? f.options() : (f.options||[]);
+    if(f.type==='select'){
+      const options = opts.map(o=>`<option ${String(val)===String(o)?'selected':''}>${o}</option>`).join('');
+      return `<div class="field"><label>${f.label}</label><select id="mf-${f.id}">${options}</select></div>`;
+    }
+    if(f.type==='textarea'){
+      return `<div class="field"><label>${f.label}</label><textarea id="mf-${f.id}" placeholder="${f.placeholder||''}">${val}</textarea></div>`;
+    }
+    return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}" value="${val}"/></div>`;
+  }).join('');
+
+  // Set currentModal so saveModal routes correctly
+  currentModal = 'editRecord';
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function saveEditRecord(){
+  const KEY_MAP = {
+    property:'properties', tenant:'tenants',
+    expense:'expenses',    income:'incomes',
+    maintenance:'maintenance', insurance:'insurance'
+  };
+  const key = KEY_MAP[editingRecordType];
+  if(!key){ toast('Unknown record type'); return; }
+
+  const fields = FIELDS[editingRecordType]||[];
+
+  // Validate first field not empty
+  const firstField = fields[0];
+  if(firstField){
+    const firstVal = document.getElementById('mf-'+firstField.id);
+    if(firstVal && (!firstVal.value || firstVal.value.trim()==='') ){
+      toast('Please fill in the required fields'); return;
+    }
+  }
+
+  // Build updated record — preserve id and any fields not in form
+  const idx = STATE[key].findIndex(r=>String(r.id)===String(editingRecordId));
+  if(idx===-1){ toast('Record not found'); return; }
+  const existing = STATE[key][idx];
+  const updated = {...existing};
+  fields.forEach(f=>{
+    const el = document.getElementById('mf-'+f.id);
+    if(el) updated[f.id] = el.value;
+  });
+
+  STATE[key][idx] = updated;
+  save(key);
+  pushRow(editingRecordType, updated);
+  closeModal();
+  renderAll();
+
+  // Navigate back to relevant screen
+  const screenMap = {
+    property:'properties', tenant:'tenants',
+    expense:'finance',     income:'finance',
+    maintenance:'maintenance', insurance:'insurance'
+  };
+  const targetScreen = screenMap[editingRecordType];
+  if(targetScreen){
+    const navBtn = document.querySelector(`.nav-btn[onclick*="${targetScreen}"]`);
+    showScreen(targetScreen, navBtn);
+  }
+  toast('✓ Updated successfully');
+}
+
+function deleteRecord(type, id){
+  const KEY_MAP = {
+    property:'properties', tenant:'tenants',
+    expense:'expenses',    income:'incomes',
+    maintenance:'maintenance', insurance:'insurance'
+  };
+  const key = KEY_MAP[type];
+  if(!key){ toast('Unknown type'); return; }
+  const record = (STATE[key]||[]).find(r=>String(r.id)===String(id));
+  const name = record ? (record.name||record.description||'this record') : 'this record';
+  if(!confirm('Delete "'+name+'"? This cannot be undone.')) return;
+  STATE[key] = STATE[key].filter(r=>String(r.id)!==String(id));
+  save(key);
+  // Push updated collection to Sheets
+  pushRow(type, {});
+  renderAll();
+  toast('✓ Deleted successfully');
+}
 // ══════════════════════════════════════════════
 // SETTINGS SCREEN
 // ══════════════════════════════════════════════
@@ -1966,7 +2257,10 @@ async function settingsTestUrl(){
   statusEl.textContent = 'Testing…';
   statusEl.style.color = 'var(--muted)';
   try{
-    const res = await fetch(v, {method:'GET', signal:AbortSignal.timeout(8000)});
+    const testController = new AbortController();
+    const testTimeout = setTimeout(()=>testController.abort(), 8000);
+    const res = await fetch(v, {method:'GET', signal:testController.signal});
+    clearTimeout(testTimeout);
     const json = JSON.parse(await res.text());
     if(json.success){
       statusEl.textContent = '✓ Connected! Script is responding correctly.';
