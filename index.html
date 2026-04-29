@@ -346,6 +346,43 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
 .cnr-toggle-sub{font-size:10px;color:var(--muted);margin-top:1px}
 /* Hidden real checkbox for form compatibility */
 .cnr-hidden-cb{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+
+/* ── DASHBOARD CHARTS ── */
+.dash-section-title{font-family:'Cinzel',serif;font-size:13px;color:var(--gold2);
+  letter-spacing:.5px;margin-bottom:10px;display:flex;justify-content:space-between;
+  align-items:center}
+.dash-section-sub{font-size:10px;color:var(--muted);font-family:'Lato',sans-serif;
+  letter-spacing:.3px;font-weight:400}
+
+/* Bar chart */
+.bar-chart-wrap{position:relative;width:100%}
+.bar-chart-canvas{width:100%;display:block}
+.bar-chart-legend{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap}
+.bar-legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+.bar-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* Alert list */
+.alert-item{display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:0.5px solid rgba(255,255,255,0.05)}
+.alert-item:last-child{border-bottom:none}
+.alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.alert-text{flex:1;font-size:12px;color:var(--text)}
+.alert-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.alert-right{font-size:11px;font-weight:700;text-align:right}
+
+/* Mini sparkline */
+.sparkline-row{display:flex;align-items:flex-end;gap:3px;height:40px;margin:8px 0 4px}
+.spark-bar{flex:1;border-radius:2px 2px 0 0;min-height:3px;transition:height 0.3s}
+.spark-labels{display:flex;gap:3px;margin-top:3px}
+.spark-label{flex:1;text-align:center;font-size:8px;color:var(--muted)}
+
+/* Donut */
+.donut-wrap{display:flex;align-items:center;gap:14px}
+.donut-canvas{flex-shrink:0}
+.donut-legend{display:flex;flex-direction:column;gap:6px;flex:1}
+.donut-leg-row{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text)}
+.donut-leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.donut-leg-val{margin-left:auto;font-weight:700;color:var(--gold2)}
 </style>
 </head>
 <body>
@@ -424,21 +461,73 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
         </div>
         <div id="connection-status" style="font-size:11px;color:var(--muted);margin-top:6px;min-height:16px"></div>
       </div>
+
+      <!-- KPI row -->
       <div class="page-head"><div><div class="page-title">Portfolio</div><div class="page-sub" id="dash-date">Loading...</div></div></div>
       <div class="stat-grid">
         <div class="stat"><div class="stat-label">Properties</div><div class="stat-value v-blue" id="s-props">—</div></div>
         <div class="stat"><div class="stat-label">Occupancy</div><div class="stat-value v-green" id="s-occ">—</div></div>
-        <div class="stat"><div class="stat-label">Rent collected</div><div class="stat-value v-gold" id="s-rent">—</div></div>
+        <div class="stat"><div class="stat-label">Rent Collected</div><div class="stat-value v-gold" id="s-rent">—</div></div>
         <div class="stat"><div class="stat-label">Overdue</div><div class="stat-value v-amber" id="s-overdue">—</div></div>
       </div>
+
+      <!-- Income vs Expenses bar chart -->
+      <div class="card" style="padding:14px 14px 10px">
+        <div class="dash-section-title">
+          Income vs Expenses
+          <span class="dash-section-sub">Last 6 months</span>
+        </div>
+        <div class="bar-chart-wrap">
+          <canvas id="chart-income-expense" class="bar-chart-canvas" height="130"></canvas>
+        </div>
+        <div class="bar-chart-legend">
+          <div class="bar-legend-item"><div class="bar-legend-dot" style="background:#5DCAA5"></div>Income</div>
+          <div class="bar-legend-item"><div class="bar-legend-dot" style="background:#F09595"></div>Expenses</div>
+        </div>
+      </div>
+
+      <!-- Net profit sparkline -->
+      <div class="card" style="padding:14px">
+        <div class="dash-section-title">
+          Net Profit Trend
+          <span class="dash-section-sub" id="dash-profit-total">—</span>
+        </div>
+        <div class="sparkline-row" id="dash-sparkline"></div>
+        <div class="spark-labels" id="dash-spark-labels"></div>
+      </div>
+
+      <!-- Property breakdown donut -->
+      <div class="card" style="padding:14px">
+        <div class="dash-section-title">
+          Property Status
+          <span class="dash-section-sub" id="dash-prop-total">—</span>
+        </div>
+        <div class="donut-wrap">
+          <canvas id="chart-donut" class="donut-canvas" width="100" height="100"></canvas>
+          <div class="donut-legend" id="donut-legend"></div>
+        </div>
+      </div>
+
+      <!-- Maintenance alerts -->
       <div class="card urgent" id="maint-card">
-        <div class="card-header"><span class="card-title">Maintenance Alerts</span><span class="badge b-red" id="maint-count">—</span></div>
+        <div class="card-header">
+          <span class="card-title">🔧 Maintenance Alerts</span>
+          <span class="badge b-red" id="maint-count">—</span>
+        </div>
         <div id="maint-list"></div>
+        <button onclick="showScreen('maintenance',null)" style="width:100%;margin-top:8px;padding:7px;border:0.5px solid rgba(240,149,149,0.3);border-radius:8px;background:transparent;color:var(--red);font-size:11px;cursor:pointer;font-family:'Lato',sans-serif">View all →</button>
       </div>
+
+      <!-- Insurance expiring -->
       <div class="card expiring" id="ins-alert-card">
-        <div class="card-header"><span class="card-title">Insurance Expiring</span><span class="badge b-amber" id="ins-exp-count">—</span></div>
+        <div class="card-header">
+          <span class="card-title">✦ Insurance Expiring</span>
+          <span class="badge b-amber" id="ins-exp-count">—</span>
+        </div>
         <div id="ins-exp-list"></div>
+        <button onclick="showScreen('insurance',null)" style="width:100%;margin-top:8px;padding:7px;border:0.5px solid rgba(245,200,90,0.3);border-radius:8px;background:transparent;color:var(--amber);font-size:11px;cursor:pointer;font-family:'Lato',sans-serif">View all →</button>
       </div>
+
       <div class="g-rule"><div class="g-line"></div><div class="g-diamond"></div><div class="g-line"></div></div>
       <button class="ai-btn" onclick="showSetupIfNeeded()">✦ Setup Guide & Info</button>
     </div>
@@ -912,50 +1001,264 @@ async function testConnection(){
 // ══════════════════════════════════════════════
 function renderDashboard(){
   document.getElementById('dash-date').textContent = today();
-  const props = STATE.properties;
-  const tenants = STATE.tenants;
-  const maint = STATE.maintenance;
-  const ins = STATE.insurance;
+  const props    = STATE.properties;
+  const tenants  = STATE.tenants;
+  const maint    = STATE.maintenance;
+  const ins      = STATE.insurance;
+  const expenses = STATE.expenses || [];
+  const incomes  = STATE.incomes  || [];
 
-  const occupied = props.filter(p=>p.status==='Occupied').length;
-  const occ = props.length ? Math.round(occupied/props.length*100) : 0;
-  const rentCollected = tenants.filter(t=>t.rentStatus==='On time').reduce((a,t)=>a+Number(t.rent||0),0);
-  const overdue = tenants.filter(t=>t.rentStatus==='Overdue').length;
-
-  document.getElementById('s-props').textContent = props.length || '0';
-  document.getElementById('s-occ').textContent = props.length ? occ+'%' : '—';
-  document.getElementById('s-rent').textContent = rentCollected ? fmt(rentCollected) : '$0';
+  // ── KPIs ────────────────────────────────────────────────────────────────────
+  const occupied  = props.filter(p=>p.status==='Occupied').length;
+  const occ       = props.length ? Math.round(occupied/props.length*100) : 0;
+  const rentColl  = tenants.filter(t=>t.rentStatus==='On time').reduce((a,t)=>a+Number(t.rent||0),0);
+  const overdue   = tenants.filter(t=>t.rentStatus==='Overdue').length;
+  document.getElementById('s-props').textContent   = props.length || '0';
+  document.getElementById('s-occ').textContent     = props.length ? occ+'%' : '—';
+  document.getElementById('s-rent').textContent    = rentColl ? fmt(rentColl) : '$0';
   document.getElementById('s-overdue').textContent = overdue;
 
-  // Maintenance alerts
-  const openMaint = maint.filter(m=>m.status!=='Resolved');
-  document.getElementById('maint-count').textContent = openMaint.length + ' Open';
-  const ml = document.getElementById('maint-list');
-  if(openMaint.length===0){
-    ml.innerHTML='<div class="row"><span class="rl">No open requests</span><span class="badge b-green">All clear</span></div>';
-  } else {
-    ml.innerHTML = openMaint.slice(0,4).map(m=>`
-      <div class="row">
-        <span class="rl">${m.unit||m.property} — ${m.issue||m.type}</span>
-        <span class="badge ${m.status==='Urgent'?'b-red':m.status==='Scheduled'?'b-green':'b-amber'}">${m.status}</span>
-      </div>`).join('');
+  // ── Build 6-month data ───────────────────────────────────────────────────────
+  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now    = new Date();
+  const months = [];
+  for(let i=5; i>=0; i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push({ label: MONTHS_SHORT[d.getMonth()], year: d.getFullYear(), month: d.getMonth() });
   }
 
-  // Insurance expiring
-  const expiring = ins.filter(i=>daysUntil(i.expiry)<=60 && daysUntil(i.expiry)>0);
-  document.getElementById('ins-exp-count').textContent = expiring.length + ' Policies';
+  function sumByMonth(records, amountKey, dateKey){
+    return months.map(m=>{
+      return records
+        .filter(r=>{
+          if(!r[dateKey]) return false;
+          const d = new Date(r[dateKey]);
+          return d.getFullYear()===m.year && d.getMonth()===m.month;
+        })
+        .reduce((a,r)=>a+Number(r[amountKey]||0),0);
+    });
+  }
+
+  // Rent income per month: sum rent of on-time tenants assigned to that month
+  // For manual incomes use the date field; for rent use current on-time tenants spread across months
+  const manualIncomeByMonth = sumByMonth(incomes, 'amount', 'date');
+  const expensesByMonth     = sumByMonth(expenses, 'amount', 'date');
+
+  // Add rent income as a flat value for the current month (recurring)
+  // For past months, use manual income records only
+  const incomeByMonth = manualIncomeByMonth.map((v,i)=>{
+    if(i===5) return v + rentColl; // current month: add rent collected
+    return v;
+  });
+
+  const profitByMonth = incomeByMonth.map((v,i)=>v - expensesByMonth[i]);
+
+  // ── Bar chart: Income vs Expenses ────────────────────────────────────────────
+  drawBarChart('chart-income-expense', months.map(m=>m.label), [
+    { values: incomeByMonth,  color: '#5DCAA5', colorAlpha: 'rgba(93,202,165,0.15)' },
+    { values: expensesByMonth, color: '#F09595', colorAlpha: 'rgba(240,149,149,0.15)' },
+  ]);
+
+  // ── Sparkline: Net profit ─────────────────────────────────────────────────────
+  const totalProfit = profitByMonth.reduce((a,v)=>a+v,0);
+  document.getElementById('dash-profit-total').textContent =
+    (totalProfit>=0?'+':'')+fmt(totalProfit)+' YTD';
+  drawSparkline('dash-sparkline','dash-spark-labels', months.map(m=>m.label), profitByMonth);
+
+  // ── Donut: Property status ────────────────────────────────────────────────────
+  const vacantCount  = props.filter(p=>p.status==='Vacant').length;
+  const maintCount   = props.filter(p=>p.status==='Maintenance').length;
+  document.getElementById('dash-prop-total').textContent = props.length+' total';
+  drawDonut('chart-donut','donut-legend',[
+    { label:'Occupied',    value:occupied,    color:'#5DCAA5' },
+    { label:'Vacant',      value:vacantCount, color:'#F5C85A' },
+    { label:'Maintenance', value:maintCount,  color:'#F09595' },
+  ], props.length);
+
+  // ── Maintenance alerts ────────────────────────────────────────────────────────
+  const openMaint = maint.filter(m=>m.status!=='Resolved');
+  document.getElementById('maint-count').textContent = openMaint.length+' Open';
+  const ml = document.getElementById('maint-list');
+  if(openMaint.length===0){
+    ml.innerHTML='<div class="alert-item"><span style="font-size:12px;color:var(--green)">✓ No open requests</span></div>';
+  } else {
+    ml.innerHTML = openMaint.slice(0,4).map(m=>{
+      const col = m.status==='Urgent'?'var(--red)':m.status==='Scheduled'?'var(--green)':'var(--amber)';
+      return `<div class="alert-item">
+        <div class="alert-dot" style="background:${col}"></div>
+        <div style="flex:1">
+          <div class="alert-text">${m.property||'—'}${m.unit?' · '+m.unit:''}</div>
+          <div class="alert-sub">${m.type||''} ${m.description?'— '+m.description.slice(0,40):''}${m.description&&m.description.length>40?'…':''}</div>
+        </div>
+        <span class="badge ${m.status==='Urgent'?'b-red':m.status==='Scheduled'?'b-green':'b-amber'}" style="font-size:9px">${m.status}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Insurance expiring ────────────────────────────────────────────────────────
+  const expiring = ins.filter(i=>daysUntil(i.expiry)<=60&&daysUntil(i.expiry)>0)
+                      .sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry));
+  document.getElementById('ins-exp-count').textContent = expiring.length+' Policies';
   const el = document.getElementById('ins-exp-list');
   if(expiring.length===0){
-    el.innerHTML='<div class="row"><span class="rl">No policies expiring soon</span><span class="badge b-green">All good</span></div>';
+    el.innerHTML='<div class="alert-item"><span style="font-size:12px;color:var(--green)">✓ No policies expiring soon</span></div>';
   } else {
-    el.innerHTML = expiring.slice(0,4).map(i=>`
-      <div class="row">
-        <span class="rl">${i.name} — ${i.type}</span>
-        <span class="rv v-amber">${new Date(i.expiry).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
-      </div>`).join('');
+    el.innerHTML = expiring.slice(0,4).map(i=>{
+      const days = daysUntil(i.expiry);
+      const col  = days<=30?'var(--red)':'var(--amber)';
+      const exp  = new Date(i.expiry).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      return `<div class="alert-item">
+        <div class="alert-dot" style="background:${col}"></div>
+        <div style="flex:1">
+          <div class="alert-text">${i.name||'—'}</div>
+          <div class="alert-sub">${i.type||''} · ${i.provider||''}</div>
+        </div>
+        <div class="alert-right" style="color:${col}">${exp}<br/><span style="font-size:9px;color:var(--muted)">${days}d left</span></div>
+      </div>`;
+    }).join('');
   }
 
   if(!STATE.scriptUrl) document.getElementById('setup-banner').classList.add('show');
+}
+
+// ── Chart drawing functions (pure Canvas — no external lib) ──────────────────
+function drawBarChart(canvasId, labels, datasets){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const dpr = window.devicePixelRatio||1;
+  const W   = canvas.offsetWidth||320;
+  const H   = 130;
+  canvas.width  = W*dpr;
+  canvas.height = H*dpr;
+  canvas.style.width  = W+'px';
+  canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const PAD_L=36, PAD_R=8, PAD_T=10, PAD_B=28;
+  const chartW = W-PAD_L-PAD_R;
+  const chartH = H-PAD_T-PAD_B;
+  const n      = labels.length;
+  const groupW = chartW/n;
+  const barW   = Math.max(4, groupW/datasets.length - 3);
+
+  // Max value
+  const allVals = datasets.flatMap(d=>d.values);
+  const maxVal  = Math.max(...allVals, 1);
+
+  // Y-axis gridlines
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth   = 0.5;
+  for(let i=0;i<=4;i++){
+    const y = PAD_T + chartH - (i/4)*chartH;
+    ctx.beginPath(); ctx.moveTo(PAD_L,y); ctx.lineTo(W-PAD_R,y); ctx.stroke();
+    // Y label
+    const val = (maxVal*i/4);
+    ctx.fillStyle='rgba(184,197,208,0.5)';
+    ctx.font=`${8*dpr/dpr}px Lato,sans-serif`;
+    ctx.textAlign='right';
+    ctx.fillText(val>=1000?'$'+(val/1000).toFixed(0)+'k':'$'+val.toFixed(0), PAD_L-3, y+3);
+  }
+
+  // Bars
+  datasets.forEach((ds,di)=>{
+    ds.values.forEach((v,i)=>{
+      const x  = PAD_L + i*groupW + di*(barW+2) + (groupW - datasets.length*(barW+2))/2;
+      const bh = Math.max(2, (v/maxVal)*chartH);
+      const y  = PAD_T + chartH - bh;
+      // Background bar
+      ctx.fillStyle = ds.colorAlpha;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(x,PAD_T,barW,chartH,2) : ctx.rect(x,PAD_T,barW,chartH);
+      ctx.fill();
+      // Value bar
+      ctx.fillStyle = ds.color;
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(x,y,barW,bh,2) : ctx.rect(x,y,barW,bh);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+  });
+
+  // X labels
+  ctx.fillStyle='rgba(184,197,208,0.6)';
+  ctx.font=`${9}px Lato,sans-serif`;
+  ctx.textAlign='center';
+  labels.forEach((l,i)=>{
+    const x = PAD_L + i*groupW + groupW/2;
+    ctx.fillText(l, x, H-6);
+  });
+}
+
+function drawSparkline(rowId, labelsId, labels, values){
+  const row = document.getElementById(rowId);
+  const lab = document.getElementById(labelsId);
+  if(!row||!lab) return;
+  const maxV = Math.max(...values.map(Math.abs), 1);
+  const H    = 40;
+  row.innerHTML = values.map((v,i)=>{
+    const pct  = Math.max(4, Math.abs(v)/maxV*100);
+    const color= v>=0 ? '#5DCAA5' : '#F09595';
+    return `<div class="spark-bar" style="background:${color};height:${pct}%;opacity:0.85"></div>`;
+  }).join('');
+  lab.innerHTML = labels.map(l=>`<div class="spark-label">${l}</div>`).join('');
+}
+
+function drawDonut(canvasId, legendId, segments, total){
+  const canvas = document.getElementById(canvasId);
+  const legend = document.getElementById(legendId);
+  if(!canvas||!legend) return;
+  const dpr  = window.devicePixelRatio||1;
+  const SIZE = 100;
+  canvas.width  = SIZE*dpr;
+  canvas.height = SIZE*dpr;
+  canvas.style.width  = SIZE+'px';
+  canvas.style.height = SIZE+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+
+  const cx=SIZE/2, cy=SIZE/2, R=42, r=26;
+  let angle = -Math.PI/2;
+  const sum = segments.reduce((a,s)=>a+s.value,0)||1;
+
+  // Draw segments
+  segments.forEach(s=>{
+    if(!s.value) return;
+    const sweep = (s.value/sum)*Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,R,angle,angle+sweep);
+    ctx.closePath();
+    ctx.fillStyle = s.color;
+    ctx.globalAlpha = 0.85;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    // Inner donut hole
+    ctx.beginPath();
+    ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle='#152235';
+    ctx.fill();
+    angle += sweep;
+  });
+
+  // Center text
+  ctx.fillStyle='#E8C97A';
+  ctx.font=`bold ${14}px Cinzel,serif`;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(total, cx, cy-5);
+  ctx.fillStyle='rgba(184,197,208,0.6)';
+  ctx.font=`${8}px Lato,sans-serif`;
+  ctx.fillText('props', cx, cy+8);
+
+  // Legend
+  legend.innerHTML = segments.map(s=>`
+    <div class="donut-leg-row">
+      <div class="donut-leg-dot" style="background:${s.color}"></div>
+      <span>${s.label}</span>
+      <span class="donut-leg-val">${s.value}</span>
+    </div>`).join('');
 }
 
 // ══════════════════════════════════════════════
