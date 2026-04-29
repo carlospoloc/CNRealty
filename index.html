@@ -329,6 +329,23 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
 .wa-retry-btn{width:100%;padding:10px;border:0.5px solid var(--border);border-radius:10px;
   background:transparent;color:var(--muted);font-size:12px;cursor:pointer;
   font-family:'Lato',sans-serif;margin-top:6px}
+
+/* ── CUSTOM TOGGLE (replaces native checkbox — works on all Safari/iPhone) ── */
+.cnr-toggle-wrap{display:flex;align-items:center;gap:12px;background:var(--navy4);
+  border:0.5px solid var(--border2);border-radius:8px;padding:11px 14px;cursor:pointer;
+  user-select:none;-webkit-user-select:none}
+.cnr-toggle{width:44px;height:26px;border-radius:13px;background:rgba(255,255,255,0.1);
+  border:0.5px solid var(--border);position:relative;flex-shrink:0;
+  transition:background 0.2s,border-color 0.2s}
+.cnr-toggle.on{background:var(--gold2);border-color:var(--gold2)}
+.cnr-toggle-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;
+  border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.3);
+  transition:transform 0.2s}
+.cnr-toggle.on .cnr-toggle-knob{transform:translateX(18px)}
+.cnr-toggle-label{font-size:13px;color:var(--text);line-height:1.3}
+.cnr-toggle-sub{font-size:10px;color:var(--muted);margin-top:1px}
+/* Hidden real checkbox for form compatibility */
+.cnr-hidden-cb{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
 </style>
 </head>
 <body>
@@ -1381,10 +1398,7 @@ function openLeadModal(leadId=null){
     <div class="field"><label>Interview Date & Time</label><input id="mf-interviewDate" type="datetime-local" value="${lead?lead.interviewDate||'':''}"/></div>
     <div class="field"><label>Contract Start Date Proposed</label><input id="mf-contractStartDate" type="date" value="${lead?lead.contractStartDate||'':''}"/></div>
     <div class="field"><label>Comments</label><textarea id="mf-comments" placeholder="Notes about this lead...">${lead?lead.comments||'':''}</textarea></div>
-    <div class="field" style="display:flex;align-items:center;gap:10px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;padding:10px 12px">
-      <input id="mf-favorite" type="checkbox" style="width:18px;height:18px;accent-color:var(--gold2)" ${lead&&(lead.favorite==='1'||lead.favorite===true||lead.favorite==='true')?'checked':''}/>
-      <label style="font-size:13px;color:var(--text);letter-spacing:.3px;cursor:pointer" for="mf-favorite">⭐ Mark as Favorite</label>
-    </div>
+    ${buildToggleField('mf-favorite','⭐ Mark as Favorite','Highlight this lead as a priority',!!(lead&&(lead.favorite==='1'||lead.favorite===true||lead.favorite==='true')))}
   `;
   currentModal = 'lead';
   document.getElementById('modal-overlay').classList.add('show');
@@ -1816,10 +1830,7 @@ function openModal(type){
   document.getElementById('modal-fields').innerHTML=fields.map(f=>{
     const opts=typeof f.options==='function'?f.options():f.options;
     if(f.type==='checkbox-forrent')
-      return `<div class="field" style="display:flex;align-items:center;gap:10px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;padding:10px 12px">
-        <input id="mf-forRent" type="checkbox" style="width:18px;height:18px;accent-color:var(--gold2)" checked/>
-        <label style="font-size:13px;color:var(--text);cursor:pointer" for="mf-forRent">🏠 For Rent</label>
-      </div>`;
+      return buildToggleField('mf-forRent','🏠 For Rent','Property is available for rent',true);
     if(f.type==='select')
       return `<div class="field"><label>${f.label}</label><select id="mf-${f.id}">${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
     if(f.type==='textarea')
@@ -1998,10 +2009,8 @@ function renderWAModal(){
       <div class="field"><label>Qualified Score (1–5)</label><select class="wa-field-edit" id="mf-score">${scoreOpts}</select></div>
       <div class="field"><label>Sales Process</label><select class="wa-field-edit" id="mf-salesProcess">${processOpts}</select></div>
       <div class="field"><label>Comments (AI summary)</label><textarea class="wa-field-edit" id="mf-comments" style="height:70px;resize:none">${e.comments||''}</textarea></div>
-      <div class="field" style="display:flex;align-items:center;gap:10px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;padding:10px 12px">
-        <input id="mf-favorite" type="checkbox" style="width:18px;height:18px;accent-color:var(--gold2)" ${(e.favorite==='1'||e.favorite===true||e.favorite==='true')?'checked':''}/>
-        <label style="font-size:13px;color:var(--text);cursor:pointer" for="mf-favorite">⭐ Mark as Favorite</label>
-      </div>
+      \${buildToggleField('mf-favorite','⭐ Mark as Favorite','Highlight this lead as a priority',
+        !!(e.favorite==='1'||e.favorite===true||e.favorite==='true'))}
       <button class="wa-retry-btn" onclick="waStep='paste';renderWAModal()">↩ Paste different chat</button>
     `;
     document.querySelector('.btn-save').style.display='';
@@ -2155,11 +2164,8 @@ function openEditModal(type, id){
     const val = record[f.id] !== undefined ? record[f.id] : '';
     const opts = typeof f.options==='function' ? f.options() : (f.options||[]);
     if(f.type==='checkbox-forrent'){
-      const isChecked = val==='1'||val===true||val==='true'||val===''||val===undefined?'checked':'';
-      return `<div class="field" style="display:flex;align-items:center;gap:10px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;padding:10px 12px">
-        <input id="mf-forRent" type="checkbox" style="width:18px;height:18px;accent-color:var(--gold2)" ${isChecked}/>
-        <label style="font-size:13px;color:var(--text);cursor:pointer" for="mf-forRent">🏠 For Rent</label>
-      </div>`;
+      const isChecked = (val==='1'||val===true||val==='true'||val===''||val===undefined);
+      return buildToggleField('mf-forRent','🏠 For Rent','Property is available for rent',isChecked);
     }
     if(f.type==='select'){
       const options = opts.map(o=>`<option ${String(val)===String(o)?'selected':''}>${o}</option>`).join('');
@@ -2343,6 +2349,33 @@ function changePassword(){
   document.getElementById('pw-current').value = '';
   document.getElementById('pw-new').value = '';
   document.getElementById('pw-confirm').value = '';
+}
+
+// ── Custom toggle helper — replaces native checkboxes ────────────────────────
+function cnrToggle(toggleEl){
+  const wrap = toggleEl.closest('.cnr-toggle-wrap');
+  const isOn  = toggleEl.classList.toggle('on');
+  // Sync hidden checkbox
+  const cb = wrap.querySelector('.cnr-hidden-cb');
+  if(cb) cb.checked = isOn;
+}
+function cnrToggleWrap(wrapEl){
+  const toggle = wrapEl.querySelector('.cnr-toggle');
+  if(toggle) cnrToggle(toggle);
+}
+// Build a toggle field HTML string
+function buildToggleField(id, label, subLabel, isChecked){
+  const onClass = isChecked ? 'on' : '';
+  return `<div class="cnr-toggle-wrap" onclick="cnrToggleWrap(this)">
+    <input class="cnr-hidden-cb" id="${id}" type="checkbox" ${isChecked?'checked':''}/>
+    <div class="cnr-toggle ${onClass}" onclick="event.stopPropagation();cnrToggle(this)">
+      <div class="cnr-toggle-knob"></div>
+    </div>
+    <div>
+      <div class="cnr-toggle-label">${label}</div>
+      ${subLabel?`<div class="cnr-toggle-sub">${subLabel}</div>`:''}
+    </div>
+  </div>`;
 }
 // ══════════════════════════════════════════════
 // PASSWORD PROTECTION
