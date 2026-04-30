@@ -1812,8 +1812,8 @@ function openLeadModal(leadId=null){
     <div class="field"><label>Qualified Score (1–5)</label><select id="mf-score">${[1,2,3,4,5].map(n=>`<option value="${n}" ${lead&&Number(lead.score)===n?'selected':''}>${n} ${'★'.repeat(n)}</option>`).join('')}</select></div>
     <div class="field"><label>Status</label><select id="mf-status"><option ${lead&&lead.status==='Active'?'selected':''}>Active</option><option ${lead&&lead.status==='Inactive'?'selected':''}>Inactive</option></select></div>
     <div class="field"><label>Sales Process</label><select id="mf-salesProcess">${PROCESS_STEPS.map(s=>`<option ${lead&&lead.salesProcess===s?'selected':''}>${s}</option>`).join('')}</select></div>
-    <div class="field"><label>Interview Date & Time</label><input id="mf-interviewDate" type="datetime-local" value="${lead?lead.interviewDate||'':''}"/></div>
-    <div class="field"><label>Contract Start Date Proposed</label><input id="mf-contractStartDate" type="date" value="${lead?lead.contractStartDate||'':''}"/></div>
+    <div class="field"><label>Interview Date & Time</label><input id="mf-interviewDate" type="datetime-local" value="${lead?normalizeDatetime(lead.interviewDate||'')+'':''}"/></div>
+    <div class="field"><label>Contract Start Date Proposed</label><input id="mf-contractStartDate" type="date" value="${lead?normalizeDate(lead.contractStartDate||'')+'':''}"/></div>
     <div class="field"><label>Comments</label><textarea id="mf-comments" placeholder="Notes about this lead...">${lead?lead.comments||'':''}</textarea></div>
     ${buildToggleField('mf-favorite','⭐ Mark as Favorite','Highlight this lead as a priority',!!(lead&&(lead.favorite==='1'||lead.favorite===true||lead.favorite==='true')))}
   `;
@@ -1891,7 +1891,7 @@ function convertLeadToTenant(leadId){
     <div class="field"><label>Phone</label><input id="mf-phone" type="tel" value="${lead.phone||''}"/></div>
     <div class="field"><label>Monthly Rent ($)</label><input id="mf-rent" type="number" placeholder="e.g. 1850"/></div>
     <div class="field"><label>Rent Status</label><select id="mf-rentStatus"><option>On time</option><option>Overdue</option><option>Renewing</option></select></div>
-    <div class="field"><label>Lease Start Date</label><input id="mf-leaseStart" type="date" value="${lead.contractStartDate||''}"/></div>
+    <div class="field"><label>Lease Start Date</label><input id="mf-leaseStart" type="date" value="${normalizeDate(lead.contractStartDate||'')}"/></div>
     <div class="field"><label>Lease End Date</label><input id="mf-leaseEnd" type="date"/></div>
     <input type="hidden" id="mf-convertLeadId" value="${leadId}"/>
   `;
@@ -2547,6 +2547,50 @@ function saveWALead(){
 
 
 
+
+// ── Date normalization helpers ─────────────────────────────────────────────
+// Converts any date string to YYYY-MM-DD for input[type=date]
+function normalizeDate(val){
+  if(!val) return '';
+  // Already YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  // Has time component — strip it
+  if(val.includes('T')) return val.split('T')[0];
+  // Try parsing common formats
+  try{
+    const d = new Date(val);
+    if(!isNaN(d.getTime())){
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    }
+  } catch(e){}
+  return val; // return as-is if we can't parse
+}
+
+// Converts any datetime string to YYYY-MM-DDTHH:MM for input[type=datetime-local]
+function normalizeDatetime(val){
+  if(!val) return '';
+  // Already in correct format YYYY-MM-DDTHH:MM
+  if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(val)) return val;
+  try{
+    const d = new Date(val);
+    if(!isNaN(d.getTime())){
+      const y   = d.getFullYear();
+      const mo  = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      const hr  = String(d.getHours()).padStart(2,'0');
+      const min = String(d.getMinutes()).padStart(2,'0');
+      return `${y}-${mo}-${day}T${hr}:${min}`;
+    }
+  } catch(e){}
+  // Has T but with seconds — trim to HH:MM
+  if(val.includes('T')){
+    return val.substring(0,16);
+  }
+  return val;
+}
 // ══════════════════════════════════════════════
 // GENERIC EDIT & DELETE FOR ALL RECORD TYPES
 // ══════════════════════════════════════════════
@@ -2591,7 +2635,15 @@ function openEditModal(type, id){
     if(f.type==='textarea'){
       return `<div class="field"><label>${f.label}</label><textarea id="mf-${f.id}" placeholder="${f.placeholder||''}">${val}</textarea></div>`;
     }
-    return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}" value="${val}"/></div>`;
+    // For date fields: normalize value to YYYY-MM-DD so browser input[type=date] accepts it
+    let safeVal = val;
+    if(f.type === 'date' && val){
+      safeVal = normalizeDate(val);
+    }
+    if(f.type === 'datetime-local' && val){
+      safeVal = normalizeDatetime(val);
+    }
+    return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}" value="${safeVal}"/></div>`;
   }).join('');
 
   // Set currentModal so saveModal routes correctly
