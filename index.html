@@ -1123,12 +1123,15 @@ function renderDashboard(){
   const incomes  = STATE.incomes  || [];
 
   // ── KPIs ────────────────────────────────────────────────────────────────────
-  const occupied  = props.filter(p=>p.status==='Occupied').length;
-  const occ       = props.length ? Math.round(occupied/props.length*100) : 0;
+  // Occupancy only counts properties with "For Rent" checked
+  // forRent is '1', true, 'true', or blank/undefined (default is for rent)
+  const forRentProps = props.filter(p=>p.forRent==='1'||p.forRent===true||p.forRent==='true'||p.forRent===''||p.forRent===undefined);
+  const occupied     = forRentProps.filter(p=>p.status==='Occupied').length;
+  const occ          = forRentProps.length ? Math.round(occupied/forRentProps.length*100) : 0;
   const rentColl  = tenants.filter(t=>t.rentStatus==='On time').reduce((a,t)=>a+Number(t.rent||0),0);
   const overdue   = tenants.filter(t=>t.rentStatus==='Overdue').length;
   document.getElementById('s-props').textContent   = props.length || '0';
-  document.getElementById('s-occ').textContent     = props.length ? occ+'%' : '—';
+  document.getElementById('s-occ').textContent     = forRentProps.length ? occ+'%' : '—';
   document.getElementById('s-rent').textContent    = rentColl ? fmt(rentColl) : '$0';
   document.getElementById('s-overdue').textContent = overdue;
 
@@ -2221,9 +2224,9 @@ const FIELDS = {
   ],
   income:[
     {id:'description',label:'Description',type:'text',placeholder:'e.g. Rent payment - April'},
-    {id:'property',label:'Property',type:'select',options:()=>['— Select —',...PROP_NAMES()]},
+    {id:'property',label:'Property',type:'select',options:()=>['— Select —',...PROP_NAMES()],extra:'onchange="onIncomePropertyChange()"'},
+    {id:'category',label:'Category',type:'select',options:['Rent','Deposit','Late Fee','Other Income'],extra:'onchange="onIncomeCategoryChange()"'},
     {id:'amount',label:'Amount ($)',type:'number',placeholder:'e.g. 1850'},
-    {id:'category',label:'Category',type:'select',options:['Rent','Deposit','Late Fee','Other Income']},
     {id:'date',label:'Date',type:'date'},
     {id:'notes',label:'Notes',type:'text',placeholder:'Optional notes'},
   ],
@@ -2249,7 +2252,7 @@ function openModal(type){
     if(f.type==='checkbox-forrent')
       return buildToggleField('mf-forRent','🏠 For Rent','Property is available for rent',true);
     if(f.type==='select')
-      return `<div class="field"><label>${f.label}</label><select id="mf-${f.id}">${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+      return `<div class="field"><label>${f.label}</label><select id="mf-${f.id}" ${f.extra||''}>${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
     if(f.type==='textarea')
       return `<div class="field"><label>${f.label}</label><textarea id="mf-${f.id}" placeholder="${f.placeholder||''}"></textarea></div>`;
     return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}"/></div>`;
@@ -2548,6 +2551,49 @@ function saveWALead(){
 
 
 
+
+// ── Income form: auto-fill rent amount when property + category = Rent ────────
+function onIncomePropertyChange(){
+  // If category is already set to Rent, auto-fill the amount
+  const catEl = document.getElementById('mf-category');
+  if(catEl && catEl.value === 'Rent') fillRentAmount();
+}
+
+function onIncomeCategoryChange(){
+  const catEl = document.getElementById('mf-category');
+  if(catEl && catEl.value === 'Rent') fillRentAmount();
+  // If user changes away from Rent, clear auto-filled amount only if it
+  // matches the property's rent (i.e. was auto-filled, not manually entered)
+  else clearAutoFilledAmount();
+}
+
+function fillRentAmount(){
+  const propEl   = document.getElementById('mf-property');
+  const amountEl = document.getElementById('mf-amount');
+  if(!propEl || !amountEl) return;
+  const propName = propEl.value;
+  if(!propName || propName === '— Select —') return;
+  const prop = STATE.properties.find(p => p.name === propName);
+  if(prop && prop.rent && Number(prop.rent) > 0){
+    amountEl.value = prop.rent;
+    // Visual feedback — briefly highlight the field
+    amountEl.style.borderColor = 'var(--green)';
+    amountEl.style.transition  = 'border-color 0.3s';
+    setTimeout(()=>{ amountEl.style.borderColor = ''; }, 1500);
+  }
+}
+
+function clearAutoFilledAmount(){
+  // Only clear if the amount matches a property's rent (was auto-filled)
+  const propEl   = document.getElementById('mf-property');
+  const amountEl = document.getElementById('mf-amount');
+  if(!propEl || !amountEl || !amountEl.value) return;
+  const propName = propEl.value;
+  const prop = STATE.properties.find(p => p.name === propName);
+  if(prop && prop.rent && amountEl.value === String(prop.rent)){
+    amountEl.value = '';
+  }
+}
 // ── Date normalization helpers ─────────────────────────────────────────────
 // Converts any date string to YYYY-MM-DD for input[type=date]
 function normalizeDate(val){
