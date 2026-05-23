@@ -414,6 +414,26 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
 .about-logo-sep{width:0.5px;height:48px;background:var(--border2)}
 .about-logo-cap{font-size:9px;color:var(--muted);text-align:center;
   letter-spacing:.8px;text-transform:uppercase;margin-top:5px}
+
+/* ── REMINDERS ── */
+.rem-card{background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;position:relative;overflow:hidden}
+.rem-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.rem-card.p-low::before{background:var(--muted)}
+.rem-card.p-medium::before{background:var(--blue)}
+.rem-card.p-high::before{background:var(--amber)}
+.rem-card.p-critical::before{background:var(--red)}
+.rem-card.completed{opacity:0.45}
+.rem-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.rem-desc{font-size:14px;font-weight:700;color:var(--text);line-height:1.3;flex:1;padding-right:8px}
+.rem-meta{font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;gap:12px;flex-wrap:wrap}
+.rem-meta span{display:flex;align-items:center;gap:4px}
+.rem-days{font-size:12px;font-weight:700}
+.rem-days.overdue{color:var(--red)}
+.rem-days.urgent{color:var(--amber)}
+.rem-days.soon{color:var(--blue)}
+.rem-days.ok{color:var(--green)}
+.rem-days.done{color:var(--muted)}
+.rem-notes{font-size:11px;color:var(--muted);font-style:italic;border-top:0.5px solid rgba(255,255,255,0.05);padding-top:7px;margin-top:4px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -557,6 +577,16 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
         </div>
         <div id="ins-exp-list"></div>
         <button onclick="showScreen('insurance',null)" style="width:100%;margin-top:8px;padding:7px;border:0.5px solid rgba(245,200,90,0.3);border-radius:8px;background:transparent;color:var(--amber);font-size:11px;cursor:pointer;font-family:'Lato',sans-serif">View all →</button>
+      </div>
+
+      <!-- Reminders alert -->
+      <div class="card" id="rem-alert-card" style="border-color:rgba(133,183,235,0.35)">
+        <div class="card-header">
+          <span class="card-title">🔔 Upcoming Reminders</span>
+          <span class="badge b-blue" id="rem-alert-count">—</span>
+        </div>
+        <div id="rem-alert-list"></div>
+        <button onclick="showScreen('reminders',document.querySelector('.nav-btn[onclick*=reminders]'))" style="width:100%;margin-top:8px;padding:7px;border:0.5px solid rgba(133,183,235,0.3);border-radius:8px;background:transparent;color:var(--blue);font-size:11px;cursor:pointer;font-family:'Lato',sans-serif">View all →</button>
       </div>
 
       <div class="g-rule"><div class="g-line"></div><div class="g-diamond"></div><div class="g-line"></div></div>
@@ -889,6 +919,30 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
       <div style="height:16px"></div>
     </div>
 
+
+    <!-- REMINDERS -->
+    <div class="screen" id="screen-reminders">
+      <div class="page-head">
+        <div><div class="page-title">Reminders</div><div class="page-sub" id="rem-sub">Property reminders</div></div>
+        <button class="page-add" onclick="openModal('reminder')">+ Add</button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-label">Total</div><div class="stat-value v-blue" id="rem-total">—</div></div>
+        <div class="stat"><div class="stat-label">Due soon</div><div class="stat-value v-amber" id="rem-soon">—</div></div>
+        <div class="stat"><div class="stat-label">Overdue</div><div class="stat-value v-red" id="rem-overdue">—</div></div>
+        <div class="stat"><div class="stat-label">Completed</div><div class="stat-value v-green" id="rem-done">—</div></div>
+      </div>
+      <div class="filter-row">
+        <div class="chip active" onclick="filterReminders('all',this)">All</div>
+        <div class="chip" onclick="filterReminders('active',this)">Active</div>
+        <div class="chip" onclick="filterReminders('overdue',this)">Overdue</div>
+        <div class="chip" onclick="filterReminders('soon',this)">Due soon</div>
+        <div class="chip" onclick="filterReminders('completed',this)">Completed</div>
+      </div>
+      <div id="reminders-list"></div>
+      <button class="add-btn" onclick="openModal('reminder')">+ Add reminder</button>
+    </div>
+
   </div><!-- /screens -->
 
   <!-- NAV -->
@@ -898,7 +952,7 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
     <button class="nav-btn" onclick="showScreen('leads',this)"><span class="nav-icon">🎯</span>Leads<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('tenants',this)"><span class="nav-icon">♟</span>Tenants<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('finance',this)"><span class="nav-icon">◈</span>Finance<div class="nav-dot"></div></button>
-    <button class="nav-btn" onclick="showScreen('insurance',this)"><span class="nav-icon">✦</span>Insure<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="showScreen('reminders',this)"><span class="nav-icon">🔔</span>Remind<div class="nav-dot"></div></button>
   </div>
 </div><!-- /app -->
 
@@ -915,6 +969,7 @@ const STATE = {
   insurance: JSON.parse(localStorage.getItem('cnr_insurance') || '[]'),
   leads: JSON.parse(localStorage.getItem('cnr_leads') || '[]'),
   incomes: JSON.parse(localStorage.getItem('cnr_incomes') || '[]'),
+  reminders: JSON.parse(localStorage.getItem('cnr_reminders') || '[]'),
 };
 
 const AVATARCOLORS = [
@@ -977,7 +1032,7 @@ async function syncAll(){
     if(res && res.success){
       // Only replace a collection if the Sheet returned data for it
       // (non-null AND either has rows OR the sheet explicitly confirmed empty)
-      const KEYS = ['properties','tenants','expenses','maintenance','insurance','leads','incomes'];
+      const KEYS = ['properties','tenants','expenses','maintenance','insurance','leads','incomes','reminders'];
       for(const k of KEYS){
         if(res[k] !== undefined && res[k] !== null){
           // Only overwrite local if Sheet has MORE or EQUAL records,
@@ -1009,7 +1064,7 @@ async function pushRow(sheet, row){
     property:'properties', tenant:'tenants', expense:'expenses',
     maintenance:'maintenance', insurance:'insurance', lead:'leads', income:'incomes',
     properties:'properties', tenants:'tenants', expenses:'expenses',
-    leads:'leads', incomes:'incomes'
+    leads:'leads', incomes:'incomes', reminders:'reminders', reminder:'reminders'
   };
   const key = SHEET_TO_KEY[sheet] || sheet;
   const rows = STATE[key] || [];
@@ -1123,15 +1178,12 @@ function renderDashboard(){
   const incomes  = STATE.incomes  || [];
 
   // ── KPIs ────────────────────────────────────────────────────────────────────
-  // Occupancy only counts properties with "For Rent" checked
-  // forRent is '1', true, 'true', or blank/undefined (default is for rent)
-  const forRentProps = props.filter(p=>p.forRent==='1'||p.forRent===true||p.forRent==='true'||p.forRent===''||p.forRent===undefined);
-  const occupied     = forRentProps.filter(p=>p.status==='Occupied').length;
-  const occ          = forRentProps.length ? Math.round(occupied/forRentProps.length*100) : 0;
+  const occupied  = props.filter(p=>p.status==='Occupied').length;
+  const occ       = props.length ? Math.round(occupied/props.length*100) : 0;
   const rentColl  = tenants.filter(t=>t.rentStatus==='On time').reduce((a,t)=>a+Number(t.rent||0),0);
   const overdue   = tenants.filter(t=>t.rentStatus==='Overdue').length;
   document.getElementById('s-props').textContent   = props.length || '0';
-  document.getElementById('s-occ').textContent     = forRentProps.length ? occ+'%' : '—';
+  document.getElementById('s-occ').textContent     = props.length ? occ+'%' : '—';
   document.getElementById('s-rent').textContent    = rentColl ? fmt(rentColl) : '$0';
   document.getElementById('s-overdue').textContent = overdue;
 
@@ -1231,6 +1283,33 @@ function renderDashboard(){
           <div class="alert-sub">${i.type||''} · ${i.provider||''}</div>
         </div>
         <div class="alert-right" style="color:${col}">${exp}<br/><span style="font-size:9px;color:var(--muted)">${days}d left</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Reminders alert ─────────────────────────────────────────────────────────
+  const rems     = STATE.reminders || [];
+  const remAlert = rems.filter(r=>{
+    if(r.status==='Completed'||r.status==='Dismissed') return false;
+    return daysUntilRem(r.dueDate) <= 30;
+  }).sort((a,b)=>daysUntilRem(a.dueDate)-daysUntilRem(b.dueDate));
+  document.getElementById('rem-alert-count').textContent = remAlert.length + (remAlert.length===1?' Reminder':' Reminders');
+  const ral = document.getElementById('rem-alert-list');
+  if(remAlert.length===0){
+    ral.innerHTML='<div class="alert-item"><span style="font-size:12px;color:var(--green)">✓ No reminders due in the next 30 days</span></div>';
+  } else {
+    ral.innerHTML = remAlert.slice(0,4).map(r=>{
+      const days = daysUntilRem(r.dueDate);
+      const lbl  = remDaysLabel(days, r.status);
+      const col  = lbl.cls==='overdue'?'var(--red)':lbl.cls==='urgent'?'var(--amber)':'var(--blue)';
+      const pb   = PRIORITY_BADGE[r.priority]||'b-gray';
+      return `<div class="alert-item">
+        <div class="alert-dot" style="background:${col}"></div>
+        <div style="flex:1">
+          <div class="alert-text">${r.description||'—'}</div>
+          <div class="alert-sub">${r.property||'—'} · <span class="badge ${pb}" style="font-size:9px;padding:1px 5px">${r.priority||'Low'}</span></div>
+        </div>
+        <div class="alert-right" style="color:${col}">${lbl.text}</div>
       </div>`;
     }).join('');
   }
@@ -1665,6 +1744,7 @@ function renderAll(){
   renderMaintenance();
   renderInsurance();
   renderLeads();
+  renderReminders();
 }
 
 // ══════════════════════════════════════════════
@@ -2222,11 +2302,19 @@ const FIELDS = {
     {id:'status',label:'Status',type:'select',options:['Urgent','Pending','Scheduled','Resolved']},
     {id:'date',label:'Reported Date',type:'date'},
   ],
+  reminder:[
+    {id:'property',label:'Property',type:'select',options:()=>['— Select —',...PROP_NAMES()]},
+    {id:'description',label:'Description',type:'text',placeholder:'e.g. Annual gas inspection'},
+    {id:'dueDate',label:'Due Date',type:'date'},
+    {id:'priority',label:'Priority',type:'select',options:['Low','Medium','High','Critical']},
+    {id:'notes',label:'Notes',type:'text',placeholder:'Optional details'},
+    {id:'status',label:'Status',type:'select',options:['Active','Completed','Dismissed']},
+  ],
   income:[
     {id:'description',label:'Description',type:'text',placeholder:'e.g. Rent payment - April'},
-    {id:'property',label:'Property',type:'select',options:()=>['— Select —',...PROP_NAMES()],extra:'onchange="onIncomePropertyChange()"'},
-    {id:'category',label:'Category',type:'select',options:['Rent','Deposit','Late Fee','Other Income'],extra:'onchange="onIncomeCategoryChange()"'},
+    {id:'property',label:'Property',type:'select',options:()=>['— Select —',...PROP_NAMES()]},
     {id:'amount',label:'Amount ($)',type:'number',placeholder:'e.g. 1850'},
+    {id:'category',label:'Category',type:'select',options:['Rent','Deposit','Late Fee','Other Income']},
     {id:'date',label:'Date',type:'date'},
     {id:'notes',label:'Notes',type:'text',placeholder:'Optional notes'},
   ],
@@ -2252,7 +2340,7 @@ function openModal(type){
     if(f.type==='checkbox-forrent')
       return buildToggleField('mf-forRent','🏠 For Rent','Property is available for rent',true);
     if(f.type==='select')
-      return `<div class="field"><label>${f.label}</label><select id="mf-${f.id}" ${f.extra||''}>${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+      return `<div class="field"><label>${f.label}</label><select id="mf-${f.id}">${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
     if(f.type==='textarea')
       return `<div class="field"><label>${f.label}</label><textarea id="mf-${f.id}" placeholder="${f.placeholder||''}"></textarea></div>`;
     return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}"/></div>`;
@@ -2289,7 +2377,8 @@ function saveModal(){
     expense:'expenses',
     income:'incomes',
     maintenance:'maintenance',
-    insurance:'insurance'
+    insurance:'insurance',
+    reminder:'reminders'
   };
   const key=keyMap[currentModal];
   if(!key){toast('Unknown type: '+currentModal);return;}
@@ -2311,7 +2400,8 @@ function saveModal(){
     expense:'finance',
     income:'finance',
     maintenance:'maintenance',
-    insurance:'insurance'
+    insurance:'insurance',
+    reminder:'reminders'
   };
   const targetScreen=screenMap[currentModal];
   if(targetScreen){
@@ -2552,47 +2642,127 @@ function saveWALead(){
 
 
 
-// ── Income form: auto-fill rent amount when property + category = Rent ────────
-function onIncomePropertyChange(){
-  // If category is already set to Rent, auto-fill the amount
-  const catEl = document.getElementById('mf-category');
-  if(catEl && catEl.value === 'Rent') fillRentAmount();
+// ══════════════════════════════════════════════
+// REMINDERS
+// ══════════════════════════════════════════════
+
+const PRIORITY_ORDER = {Critical:0, High:1, Medium:2, Low:3};
+const PRIORITY_CLASS = {Critical:'p-critical', High:'p-high', Medium:'p-medium', Low:'p-low'};
+const PRIORITY_BADGE = {
+  Critical:'b-red', High:'b-amber', Medium:'b-blue', Low:'b-gray'
+};
+
+function daysUntilRem(dateStr){
+  if(!dateStr) return 9999;
+  const d = new Date(dateStr);
+  d.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.ceil((d - today) / 86400000);
 }
 
-function onIncomeCategoryChange(){
-  const catEl = document.getElementById('mf-category');
-  if(catEl && catEl.value === 'Rent') fillRentAmount();
-  // If user changes away from Rent, clear auto-filled amount only if it
-  // matches the property's rent (i.e. was auto-filled, not manually entered)
-  else clearAutoFilledAmount();
+function remDaysLabel(days, status){
+  if(status === 'Completed') return {text:'✓ Completed', cls:'done'};
+  if(status === 'Dismissed') return {text:'Dismissed', cls:'done'};
+  if(days < 0)  return {text: Math.abs(days)+'d overdue', cls:'overdue'};
+  if(days === 0) return {text:'Due today!', cls:'urgent'};
+  if(days <= 7)  return {text:'Due in '+days+'d', cls:'urgent'};
+  if(days <= 30) return {text:'Due in '+days+'d', cls:'soon'};
+  return {text:'Due in '+days+'d', cls:'ok'};
 }
 
-function fillRentAmount(){
-  const propEl   = document.getElementById('mf-property');
-  const amountEl = document.getElementById('mf-amount');
-  if(!propEl || !amountEl) return;
-  const propName = propEl.value;
-  if(!propName || propName === '— Select —') return;
-  const prop = STATE.properties.find(p => p.name === propName);
-  if(prop && prop.rent && Number(prop.rent) > 0){
-    amountEl.value = prop.rent;
-    // Visual feedback — briefly highlight the field
-    amountEl.style.borderColor = 'var(--green)';
-    amountEl.style.transition  = 'border-color 0.3s';
-    setTimeout(()=>{ amountEl.style.borderColor = ''; }, 1500);
+function renderReminders(filter='all'){
+  const rems = STATE.reminders || [];
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const active    = rems.filter(r=>r.status==='Active'||!r.status);
+  const overdue   = active.filter(r=>daysUntilRem(r.dueDate)<0);
+  const soon      = active.filter(r=>{const d=daysUntilRem(r.dueDate);return d>=0&&d<=30;});
+  const completed = rems.filter(r=>r.status==='Completed');
+
+  document.getElementById('rem-total').textContent   = rems.length;
+  document.getElementById('rem-soon').textContent    = soon.length;
+  document.getElementById('rem-overdue').textContent = overdue.length;
+  document.getElementById('rem-done').textContent    = completed.length;
+  document.getElementById('rem-sub').textContent     = rems.length + ' reminder'+(rems.length===1?'':'s')+' · '+overdue.length+' overdue';
+
+  let list = [...rems];
+  if(filter==='active')    list = active;
+  else if(filter==='overdue')   list = overdue;
+  else if(filter==='soon')      list = soon;
+  else if(filter==='completed') list = completed;
+
+  // Sort: overdue first, then by priority, then by date
+  list.sort((a,b)=>{
+    const da=daysUntilRem(a.dueDate), db=daysUntilRem(b.dueDate);
+    if(da<0 && db>=0) return -1;
+    if(db<0 && da>=0) return 1;
+    const pa=PRIORITY_ORDER[a.priority]??3, pb=PRIORITY_ORDER[b.priority]??3;
+    if(pa!==pb) return pa-pb;
+    return da-db;
+  });
+
+  const el = document.getElementById('reminders-list');
+  if(list.length===0){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">🔔</div><div class="empty-text">No reminders${filter!=='all'?' matching this filter':' yet'}.<br/>Tap + Add to create one.</div></div>`;
+    return;
   }
+
+  el.innerHTML = list.map(r=>{
+    const days   = daysUntilRem(r.dueDate);
+    const lbl    = remDaysLabel(days, r.status);
+    const pc     = PRIORITY_CLASS[r.priority]||'p-low';
+    const pb     = PRIORITY_BADGE[r.priority]||'b-gray';
+    const isDone = r.status==='Completed'||r.status==='Dismissed';
+    const dueFmt = r.dueDate ? new Date(r.dueDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+
+    return `<div class="rem-card ${pc} ${isDone?'completed':''}">
+      <div class="rem-header">
+        <div class="rem-desc">${r.description||'—'}</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="badge ${pb}">${r.priority||'Low'}</span>
+          <span class="rem-days ${lbl.cls}">${lbl.text}</span>
+        </div>
+      </div>
+      <div class="rem-meta">
+        <span>⌂ ${r.property||'—'}</span>
+        <span>📅 ${dueFmt}</span>
+        ${r.status?`<span class="badge ${isDone?'b-gray':'b-green'}" style="font-size:9px">${r.status}</span>`:''}
+      </div>
+      ${r.notes?`<div class="rem-notes">"${r.notes}"</div>`:''}
+      <div class="lead-actions" style="margin-top:10px">
+        ${!isDone?`<button class="lead-btn convert" onclick="completeReminder('${r.id}')">✓ Done</button>`:''}
+        <button class="lead-btn primary" onclick="openEditModal('reminder','${r.id}')">✏ Edit</button>
+        <button class="lead-btn danger" onclick="deleteRecord('reminder','${r.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-function clearAutoFilledAmount(){
-  // Only clear if the amount matches a property's rent (was auto-filled)
-  const propEl   = document.getElementById('mf-property');
-  const amountEl = document.getElementById('mf-amount');
-  if(!propEl || !amountEl || !amountEl.value) return;
-  const propName = propEl.value;
-  const prop = STATE.properties.find(p => p.name === propName);
-  if(prop && prop.rent && amountEl.value === String(prop.rent)){
-    amountEl.value = '';
-  }
+function filterReminders(f, el){
+  document.querySelectorAll('#screen-reminders .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderReminders(f);
+}
+
+function completeReminder(id){
+  const rem = (STATE.reminders||[]).find(r=>String(r.id)===String(id));
+  if(!rem) return;
+  rem.status = 'Completed';
+  save('reminders');
+  pushRow('reminder', rem);
+  renderAll();
+  toast('✓ Reminder marked as completed');
+}
+
+// Add reminders count badge on dashboard
+function renderRemindersBadge(){
+  const rems   = STATE.reminders || [];
+  const urgent = rems.filter(r=>{
+    if(r.status==='Completed'||r.status==='Dismissed') return false;
+    return daysUntilRem(r.dueDate) <= 7;
+  });
+  // Show on dashboard maint card if any urgent
+  return urgent.length;
 }
 // ── Date normalization helpers ─────────────────────────────────────────────
 // Converts any date string to YYYY-MM-DD for input[type=date]
@@ -2651,7 +2821,8 @@ function openEditModal(type, id){
   const KEY_MAP = {
     property:'properties', tenant:'tenants',
     expense:'expenses',    income:'incomes',
-    maintenance:'maintenance', insurance:'insurance'
+    maintenance:'maintenance', insurance:'insurance',
+    reminder:'reminders'
   };
   const key = KEY_MAP[type];
   const record = (STATE[key]||[]).find(r=>String(r.id)===String(id));
@@ -2701,7 +2872,8 @@ function saveEditRecord(){
   const KEY_MAP = {
     property:'properties', tenant:'tenants',
     expense:'expenses',    income:'incomes',
-    maintenance:'maintenance', insurance:'insurance'
+    maintenance:'maintenance', insurance:'insurance',
+    reminder:'reminders'
   };
   const key = KEY_MAP[editingRecordType];
   if(!key){ toast('Unknown record type'); return; }
@@ -2756,7 +2928,8 @@ function deleteRecord(type, id){
   const KEY_MAP = {
     property:'properties', tenant:'tenants',
     expense:'expenses',    income:'incomes',
-    maintenance:'maintenance', insurance:'insurance'
+    maintenance:'maintenance', insurance:'insurance',
+    reminder:'reminders'
   };
   const key = KEY_MAP[type];
   if(!key){ toast('Unknown type'); return; }
