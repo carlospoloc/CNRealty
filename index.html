@@ -516,7 +516,7 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
       <!-- KPI row -->
       <div class="page-head"><div><div class="page-title">Portfolio</div><div class="page-sub" id="dash-date">Loading...</div></div></div>
       <div class="stat-grid">
-        <div class="stat"><div class="stat-label">Properties</div><div class="stat-value v-blue" id="s-props">—</div></div>
+        <div class="stat"><div class="stat-label">Monthly Rent</div><div class="stat-value v-gold" id="s-props">—</div></div>
         <div class="stat"><div class="stat-label">Occupancy</div><div class="stat-value v-green" id="s-occ">—</div></div>
         <div class="stat"><div class="stat-label">Rent Collected</div><div class="stat-value v-gold" id="s-rent">—</div></div>
         <div class="stat"><div class="stat-label">Overdue</div><div class="stat-value v-amber" id="s-overdue">—</div></div>
@@ -1178,12 +1178,16 @@ function renderDashboard(){
   const incomes  = STATE.incomes  || [];
 
   // ── KPIs ────────────────────────────────────────────────────────────────────
-  const occupied  = props.filter(p=>p.status==='Occupied').length;
-  const occ       = props.length ? Math.round(occupied/props.length*100) : 0;
-  const rentColl  = tenants.filter(t=>t.rentStatus==='On time').reduce((a,t)=>a+Number(t.rent||0),0);
-  const overdue   = tenants.filter(t=>t.rentStatus==='Overdue').length;
-  document.getElementById('s-props').textContent   = props.length || '0';
-  document.getElementById('s-occ').textContent     = props.length ? occ+'%' : '—';
+  // Occupancy: only For Rent properties
+  const forRentProps = props.filter(p=>p.forRent==='1'||p.forRent===true||p.forRent==='true'||p.forRent===''||p.forRent===undefined);
+  const occupied     = forRentProps.filter(p=>p.status==='Occupied').length;
+  const occ          = forRentProps.length ? Math.round(occupied/forRentProps.length*100) : 0;
+  // Monthly rent: sum rent of all occupied properties (from property records)
+  const monthlyRent  = props.filter(p=>p.status==='Occupied').reduce((a,p)=>a+Number(p.rent||0),0);
+  const rentColl     = tenants.filter(t=>t.rentStatus==='On time').reduce((a,t)=>a+Number(t.rent||0),0);
+  const overdue      = tenants.filter(t=>t.rentStatus==='Overdue').length;
+  document.getElementById('s-props').textContent   = monthlyRent ? fmt(monthlyRent) : '$0';
+  document.getElementById('s-occ').textContent     = forRentProps.length ? occ+'%' : '—';
   document.getElementById('s-rent').textContent    = rentColl ? fmt(rentColl) : '$0';
   document.getElementById('s-overdue').textContent = overdue;
 
