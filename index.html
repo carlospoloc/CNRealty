@@ -1030,18 +1030,25 @@ async function syncAll(){
   try{
     const res = await apiCall('getAll');
     if(res && res.success){
-      // Only replace a collection if the Sheet returned data for it
-      // (non-null AND either has rows OR the sheet explicitly confirmed empty)
       const KEYS = ['properties','tenants','expenses','maintenance','insurance','leads','incomes','reminders'];
+      const pushPromises = [];
       for(const k of KEYS){
         if(res[k] !== undefined && res[k] !== null){
-          // Only overwrite local if Sheet has MORE or EQUAL records,
-          // or if local is empty — prevents wipe on first-deploy
-          if(res[k].length > 0 || STATE[k].length === 0){
+          if(res[k].length > 0){
+            // Remote has data → it is the source of truth, pull it down
             STATE[k] = res[k];
             save(k);
+          } else if(STATE[k].length > 0){
+            // Remote is empty but local has records →
+            // local data was never pushed (e.g. due to a previous bug).
+            // Push local up so other devices can receive it.
+            pushPromises.push(apiCall('setAll', {sheet: k, rows: STATE[k]}));
           }
+          // Both empty → nothing to do
         }
+      }
+      if(pushPromises.length > 0){
+        await Promise.all(pushPromises);
       }
       renderAll();
       setSyncStatus('ok');
