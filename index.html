@@ -987,6 +987,12 @@ const AVATARCOLORS = [
 function avatarColor(i){return AVATARCOLORS[i % AVATARCOLORS.length]}
 function initials(name){return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
 function save(key){localStorage.setItem('cnr_'+key, JSON.stringify(STATE[key]))}
+function markDirty(key){
+  const dirty = JSON.parse(localStorage.getItem('cnr_dirty')||'[]');
+  if(!dirty.includes(key)){ dirty.push(key); localStorage.setItem('cnr_dirty', JSON.stringify(dirty)); }
+}
+function clearDirty(){localStorage.removeItem('cnr_dirty')}
+function getDirty(){return JSON.parse(localStorage.getItem('cnr_dirty')||'[]')}
 function fmt(n){return '$'+Math.round(n).toLocaleString()}
 function today(){const d=new Date();return d.toLocaleDateString('en-US',{month:'long',year:'numeric'})}
 function daysUntil(dateStr){if(!dateStr)return 9999;const d=new Date(dateStr)-new Date();return Math.ceil(d/86400000)}
@@ -1034,30 +1040,33 @@ async function syncAll(){
   try{
     const res = await apiCall('getAll');
     if(res && res.success){
-      const KEYS = ['properties','tenants','expenses','maintenance','insurance','leads','incomes','reminders'];
+      const KEYS  = ['properties','tenants','expenses','maintenance','insurance','leads','incomes','reminders'];
+      const dirty = getDirty();
       const pushPromises = [];
+
       for(const k of KEYS){
-        if(res[k] !== undefined && res[k] !== null){
-          if(res[k].length > 0){
-            // Remote has data → it is the source of truth, pull it down
-            STATE[k] = res[k];
-            save(k);
-          } else if(STATE[k].length > 0){
-            // Remote is empty but local has records →
-            // local data was never pushed (e.g. due to a previous bug).
-            // Push local up so other devices can receive it.
-            pushPromises.push(apiCall('setAll', {sheet: k, rows: STATE[k]}));
-          }
-          // Both empty → nothing to do
+        if(res[k] === undefined || res[k] === null) continue;
+
+        if(dirty.includes(k)){
+          // Local was modified since last sync (add/edit/delete) → push local as truth
+          pushPromises.push(apiCall('setAll', {sheet: k, rows: STATE[k]}));
+        } else if(res[k].length > 0){
+          // No local changes → pull from Sheets (new data from another device)
+          STATE[k] = res[k];
+          save(k);
+        } else if(STATE[k].length > 0){
+          // Sheets is empty but local has data → first push (e.g. new install on this device)
+          pushPromises.push(apiCall('setAll', {sheet: k, rows: STATE[k]}));
         }
       }
+
       if(pushPromises.length > 0){
         await Promise.all(pushPromises);
       }
+      clearDirty(); // All changes are now in sync
       renderAll();
       setSyncStatus('ok');
     } else {
-      // Sync failed — keep local data, show warning
       setSyncStatus('error');
       renderAll();
     }
@@ -2521,6 +2530,7 @@ function saveModal(){
 
   if(STATE[key]) STATE[key].push(row);
   save(key);
+  markDirty(key);
   pushRow(currentModal, row);
   closeModal();
   renderAll();
@@ -3069,6 +3079,7 @@ function deleteRecord(type, id){
   if(!confirm('Delete "'+name+'"? This cannot be undone.')) return;
   STATE[key] = STATE[key].filter(r=>String(r.id)!==String(id));
   save(key);
+  markDirty(key);
   // Push the full updated collection using the resolved key (not the type shorthand)
   // This ensures deletions are synced to Google Sheets correctly
   if(STATE.scriptUrl){
