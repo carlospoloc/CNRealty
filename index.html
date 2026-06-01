@@ -792,6 +792,11 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
           <label>Apps Script Web App URL</label>
           <input id="settings-script-url" type="url" style="width:100%;padding:9px 12px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;font-family:'Lato',sans-serif;outline:none" placeholder="https://script.google.com/macros/s/.../exec"/>
         </div>
+        <div class="field" style="margin-top:10px">
+          <label>API Secret Token</label>
+          <input id="settings-api-token" type="password" style="width:100%;padding:9px 12px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;font-family:'Lato',sans-serif;outline:none" placeholder="Paste your secret token here"/>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px">Must match SECRET_TOKEN in your Google Apps Script</div>
+        </div>
         <div style="display:flex;gap:8px;margin-top:10px">
           <button onclick="settingsSaveUrl()" style="flex:2;padding:10px;background:rgba(201,168,76,0.12);border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">Save & Sync ✦</button>
           <button onclick="settingsTestUrl()" style="flex:1;padding:10px;background:rgba(133,183,235,0.08);border:0.5px solid rgba(133,183,235,0.3);border-radius:8px;color:var(--blue);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">Test</button>
@@ -966,6 +971,7 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
 // ══════════════════════════════════════════════
 const STATE = {
   scriptUrl: localStorage.getItem('cnr_script_url') || '',
+  apiToken:  localStorage.getItem('cnr_api_token')  || '',
   properties: JSON.parse(localStorage.getItem('cnr_properties') || '[]'),
   tenants: JSON.parse(localStorage.getItem('cnr_tenants') || '[]'),
   expenses: JSON.parse(localStorage.getItem('cnr_expenses') || '[]'),
@@ -1016,7 +1022,7 @@ async function apiCall(action, payload={}){
     const res = await fetch(STATE.scriptUrl, {
       method:'POST',
       headers:{'Content-Type':'text/plain'},
-      body: JSON.stringify({action, ...payload}),
+      body: JSON.stringify({action, token: STATE.apiToken, ...payload}),
       signal: controller.signal
     });
     clearTimeout(timeoutId);
@@ -3095,10 +3101,10 @@ function deleteRecord(type, id){
 // SETTINGS SCREEN
 // ══════════════════════════════════════════════
 function openSettings(){
-  // Pre-fill current URL
   const urlInput = document.getElementById('settings-script-url');
   if(urlInput) urlInput.value = STATE.scriptUrl || '';
-  // Fill local record counts
+  const tokenInput = document.getElementById('settings-api-token');
+  if(tokenInput) tokenInput.value = STATE.apiToken || '';
   document.getElementById('st-props').textContent    = STATE.properties.length + ' records';
   document.getElementById('st-tenants').textContent  = STATE.tenants.length + ' records';
   document.getElementById('st-leads').textContent    = STATE.leads.length + ' records';
@@ -3107,7 +3113,6 @@ function openSettings(){
   document.getElementById('st-ins').textContent      = STATE.insurance.length + ' records';
   document.getElementById('settings-status').textContent = '';
   document.getElementById('pw-status').textContent = '';
-  // Navigate to settings screen (no nav btn — accessed via header)
   showScreen('settings', null);
 }
 
@@ -3118,14 +3123,21 @@ async function settingsSaveUrl(){
     document.getElementById('settings-status').style.color = 'var(--red)';
     return;
   }
+  const t = document.getElementById('settings-api-token').value.trim();
+  if(!t){
+    document.getElementById('settings-status').textContent = '✗ Please enter your API Secret Token';
+    document.getElementById('settings-status').style.color = 'var(--red)';
+    return;
+  }
   STATE.scriptUrl = v;
+  STATE.apiToken  = t;
   localStorage.setItem('cnr_script_url', v);
-  document.getElementById('settings-status').textContent = '✓ URL saved — syncing now…';
+  localStorage.setItem('cnr_api_token',  t);
+  document.getElementById('settings-status').textContent = '✓ Saved — syncing now…';
   document.getElementById('settings-status').style.color = 'var(--green)';
-  // Hide setup banner if visible
   document.getElementById('setup-banner').classList.remove('show');
   await syncAll();
-  document.getElementById('settings-status').textContent = '✓ URL saved and sync complete';
+  document.getElementById('settings-status').textContent = '✓ Saved and sync complete';
 }
 
 async function settingsTestUrl(){
