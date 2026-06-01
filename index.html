@@ -658,6 +658,10 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
           <div class="row"><span class="rl">Outstanding rent</span><span class="rv v-red" id="f-outstanding-detail">—</span></div>
         </div>
         <div class="card">
+          <div class="card-title" style="margin-bottom:6px">This Month's Rent</div>
+          <div id="rent-payment-list"></div>
+        </div>
+        <div class="card">
           <div class="card-title" style="margin-bottom:10px">Recent Activity</div>
           <div id="fin-recent-list"></div>
         </div>
@@ -1586,7 +1590,8 @@ function generateMonthlyRent(){
   if(added){
     save('incomes');
     if(STATE.scriptUrl) pushRow('incomes', null);
-    renderFinance();
+    // Note: do NOT call renderFinance() here — renderFinance() calls generateMonthlyRent()
+    // so calling back would create an infinite loop. The caller renders after this returns.
   }
 }
 
@@ -1601,6 +1606,9 @@ function toggleIncomePayment(id){
 
 // ══════════════════════════════════════════════
 function renderFinance(){
+  // Ensure current month's rent records exist before rendering
+  generateMonthlyRent();
+
   const tenants  = STATE.tenants;
   const expenses = STATE.expenses;
   const incomes  = STATE.incomes || [];
@@ -1630,6 +1638,32 @@ function renderFinance(){
   document.getElementById('f-progress').style.width   = pct + '%';
   document.getElementById('f-late').textContent       = thisMonthRent.filter(i=>i.paid==='Pending').length;
   document.getElementById('f-outstanding-detail').textContent = fmt(outstanding);
+
+  // ── This Month's Rent — payment toggle list (Summary tab) ─────────────────
+  const rentPayEl = document.getElementById('rent-payment-list');
+  if(thisMonthRent.length === 0){
+    rentPayEl.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:4px 0">No active tenants found. Add tenants to auto-generate rent records.</div>';
+  } else {
+    rentPayEl.innerHTML = thisMonthRent.map(i => {
+      const paid = i.paid === 'Paid';
+      return `
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.property||'—'}</div>
+          <div style="font-size:11px;color:var(--muted)">${(i.description||'').replace(/^Rent · [^·]+ · /,'')}</div>
+        </div>
+        <span style="font-size:13px;font-weight:700;color:${paid?'var(--green)':'var(--amber)'};flex-shrink:0">${fmt(i.amount)}</span>
+        <button onclick="toggleIncomePayment('${i.id}')" style="
+          flex-shrink:0;padding:6px 12px;font-size:11px;border-radius:8px;cursor:pointer;
+          font-family:'Lato',sans-serif;letter-spacing:.3px;white-space:nowrap;
+          border:0.5px solid ${paid?'rgba(93,202,165,0.5)':'rgba(245,200,90,0.5)'};
+          background:${paid?'rgba(93,202,165,0.12)':'rgba(245,200,90,0.12)'};
+          color:${paid?'var(--green)':'var(--amber)'}">
+          ${paid ? '✓ Paid' : 'Mark Paid'}
+        </button>
+      </div>`;
+    }).join('');
+  }
 
   // ── Recent Activity (combined income + expenses, sorted by date) ──────────
   const recentEl = document.getElementById('fin-recent-list');
