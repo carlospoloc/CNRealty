@@ -982,6 +982,7 @@ const STATE = {
   leads: JSON.parse(localStorage.getItem('cnr_leads') || '[]'),
   incomes: JSON.parse(localStorage.getItem('cnr_incomes') || '[]'),
   reminders: JSON.parse(localStorage.getItem('cnr_reminders') || '[]'),
+  syncReady: false,   // true only after first sync completes — guards generateMonthlyRent
 };
 
 const AVATARCOLORS = [
@@ -1073,6 +1074,7 @@ async function syncAll(){
         await Promise.all(pushPromises);
       }
       clearDirty(); // All changes are now in sync
+      STATE.syncReady = true;
       renderAll();
       setSyncStatus('ok');
     } else {
@@ -1567,6 +1569,10 @@ function filterTenants(f,el){
 // AUTO RENT INCOME GENERATION
 // ══════════════════════════════════════════════
 function generateMonthlyRent(){
+  // Don't run until the first sync completes — prevents creating duplicate
+  // records before Sheets data has been pulled into STATE
+  if(!STATE.syncReady) return;
+
   const now      = new Date();
   const year     = now.getFullYear();
   const month    = String(now.getMonth()+1).padStart(2,'0');
@@ -3172,6 +3178,7 @@ async function resetAndPullFromSheets(){
         }
       });
       normaliseIncomes();
+      STATE.syncReady = true;
       renderAll();
       setSyncStatus('ok');
       statusEl.textContent = '✓ Done — local data replaced with Sheets data.';
@@ -3404,9 +3411,11 @@ window.addEventListener('load',()=>{
     // Always render local data first so app is usable immediately
     renderAll();
     if(STATE.scriptUrl){
-      // Then sync in background — won't block UI
+      // Sync in background — won't block UI
       setTimeout(()=>syncAll(), 300);
     } else {
+      // No sync configured — local data is already final, safe to generate rent
+      STATE.syncReady = true;
       setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),500);
     }
   } else {
