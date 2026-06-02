@@ -814,6 +814,8 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
         <div class="row"><span class="rl">Maintenance</span><span class="rv v-blue" id="st-maint">—</span></div>
         <div class="row"><span class="rl">Insurance</span><span class="rv v-blue" id="st-ins">—</span></div>
         <button onclick="syncAll()" style="width:100%;margin-top:12px;padding:10px;background:transparent;border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">↻ Force Full Sync</button>
+        <button onclick="resetAndPullFromSheets()" style="width:100%;margin-top:8px;padding:10px;background:rgba(240,149,149,0.06);border:0.5px solid rgba(240,149,149,0.3);border-radius:8px;color:var(--red);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">🗑 Reset Local Data &amp; Pull from Sheets</button>
+        <div id="reset-status" style="font-size:11px;margin-top:6px;min-height:14px;color:var(--muted)"></div>
       </div>
 
       <!-- Password change -->
@@ -3133,6 +3135,55 @@ function openSettings(){
   document.getElementById('settings-status').textContent = '';
   document.getElementById('pw-status').textContent = '';
   showScreen('settings', null);
+}
+
+async function resetAndPullFromSheets(){
+  const statusEl = document.getElementById('reset-status');
+  if(!STATE.scriptUrl){
+    statusEl.textContent = '✗ No Script URL configured.';
+    statusEl.style.color = 'var(--red)';
+    return;
+  }
+  const confirmed = confirm(
+    'This will delete ALL local data on this device and replace it with what is stored in Google Sheets.\n\nContinue?'
+  );
+  if(!confirmed) return;
+
+  statusEl.textContent = 'Clearing local data…';
+  statusEl.style.color = 'var(--muted)';
+
+  // Wipe all local data keys
+  const KEYS = ['properties','tenants','expenses','maintenance','insurance','leads','incomes','reminders'];
+  KEYS.forEach(k=>{
+    STATE[k] = [];
+    localStorage.removeItem('cnr_' + k);
+  });
+  clearDirty(); // no local changes to push
+
+  statusEl.textContent = 'Pulling from Google Sheets…';
+
+  try{
+    const res = await apiCall('getAll');
+    if(res && res.success){
+      KEYS.forEach(k=>{
+        if(res[k] && res[k].length > 0){
+          STATE[k] = res[k];
+          localStorage.setItem('cnr_' + k, JSON.stringify(STATE[k]));
+        }
+      });
+      normaliseIncomes();
+      renderAll();
+      setSyncStatus('ok');
+      statusEl.textContent = '✓ Done — local data replaced with Sheets data.';
+      statusEl.style.color = 'var(--green)';
+    } else {
+      statusEl.textContent = '✗ Pull failed — Sheets returned an error. Local data cleared.';
+      statusEl.style.color = 'var(--red)';
+    }
+  } catch(e){
+    statusEl.textContent = '✗ Connection error. Local data cleared but pull failed.';
+    statusEl.style.color = 'var(--red)';
+  }
 }
 
 async function settingsSaveUrl(){
