@@ -1032,6 +1032,10 @@ if(!GLOBAL.profiles || GLOBAL.profiles.length === 0){
 
 function saveProfiles(){
   localStorage.setItem('cnr_profiles', JSON.stringify(GLOBAL.profiles));
+  // Push to Sheets so all devices stay in sync
+  if(STATE.scriptUrl){
+    apiCall('setProfiles', {profiles: GLOBAL.profiles}).catch(()=>{});
+  }
 }
 
 const AVATARCOLORS = [
@@ -3284,6 +3288,8 @@ async function settingsSaveUrl(){
   document.getElementById('settings-status').textContent = '✓ Saved — syncing now…';
   document.getElementById('settings-status').style.color = 'var(--green)';
   document.getElementById('setup-banner').classList.remove('show');
+  // Push profiles so other devices can see them immediately
+  await apiCall('setProfiles', {profiles: GLOBAL.profiles}).catch(()=>{});
   await syncAll();
   document.getElementById('settings-status').textContent = '✓ Saved and sync complete';
 }
@@ -3415,7 +3421,18 @@ function currentProfileName(){
 function showProfileScreen(){
   document.getElementById('app').style.display = 'none';
   document.getElementById('profile-screen').classList.add('show');
-  renderProfileScreen();
+  // Always pull latest profiles from Sheets so renames/additions from other devices appear
+  if(STATE.scriptUrl){
+    apiCall('getProfiles').then(res=>{
+      if(res && res.success && Array.isArray(res.profiles) && res.profiles.length > 0){
+        GLOBAL.profiles = res.profiles;
+        localStorage.setItem('cnr_profiles', JSON.stringify(GLOBAL.profiles));
+      }
+      renderProfileScreen();
+    }).catch(()=>renderProfileScreen());
+  } else {
+    renderProfileScreen();
+  }
 }
 
 function renderProfileScreen(){
