@@ -175,6 +175,17 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
 /* ── LOGIN SCREEN ── */
 #login-screen{position:fixed;inset:0;background:var(--navy);z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px}
 #login-screen.hidden{display:none}
+/* ── Profile Selection Screen ── */
+#profile-screen{position:fixed;inset:0;background:var(--navy);z-index:1900;display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px}
+#profile-screen.show{display:flex}
+.profile-card{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--navy2);border:0.5px solid var(--border2);border-radius:14px;cursor:pointer;transition:border-color .2s,background .2s;width:100%;max-width:340px}
+.profile-card:active{background:var(--navy4);border-color:var(--gold2)}
+.profile-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;font-weight:700;color:var(--navy)}
+.profile-card-name{font-family:'Cinzel',serif;font-size:15px;font-weight:600;color:var(--text);letter-spacing:.5px}
+.profile-card-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.profile-edit-btn{margin-left:auto;flex-shrink:0;background:transparent;border:0.5px solid var(--border2);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);cursor:pointer}
+.profile-add-btn{width:100%;max-width:340px;padding:13px;background:transparent;border:1px dashed var(--border2);border-radius:14px;color:var(--muted);font-size:13px;cursor:pointer;font-family:'Lato',sans-serif;letter-spacing:.3px;margin-top:4px}
+.profile-add-btn:active{background:var(--navy2)}
 .login-logo-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:36px}
 .login-logo-img{width:200px;height:130px;border-radius:12px;object-fit:contain;object-position:center;background:var(--navy2);border:0.5px solid var(--border);margin-bottom:16px;padding:8px}
 .login-brand{font-family:'Cinzel',serif;font-size:22px;font-weight:600;color:var(--gold2);letter-spacing:1px;text-align:center}
@@ -467,6 +478,14 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
   <div class="spinner"></div>
 </div>
 
+<!-- PROFILE SELECTION SCREEN -->
+<div id="profile-screen">
+  <div style="font-family:'Cinzel',serif;font-size:20px;color:var(--gold2);letter-spacing:2px;margin-bottom:6px">CORONADO NOVA</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:32px;letter-spacing:1.5px;text-transform:uppercase">Select Profile</div>
+  <div id="profile-list" style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px"></div>
+  <button class="profile-add-btn" onclick="showAddProfileDialog()" style="margin-top:14px">+ Add Profile</button>
+</div>
+
 <div id="toast"></div>
 
 <!-- MODAL -->
@@ -492,6 +511,7 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
       </div>
     </div>
     <div style="display:flex;gap:7px;align-items:center">
+      <button onclick="switchProfile()" id="profile-badge" title="Switch Profile" style="width:30px;height:30px;border-radius:50%;background:var(--gold2);color:var(--navy);font-size:13px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">?</button>
       <button class="sync-btn" onclick="syncAll()"><span class="sync-icon">↻</span> Sync</button>
       <button class="sync-btn" onclick="openSettings()" title="Settings" style="padding:4px 8px;font-size:15px;">⚙</button>
     </div>
@@ -814,6 +834,7 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
         <div class="row"><span class="rl">Maintenance</span><span class="rv v-blue" id="st-maint">—</span></div>
         <div class="row"><span class="rl">Insurance</span><span class="rv v-blue" id="st-ins">—</span></div>
         <button onclick="syncAll()" style="width:100%;margin-top:12px;padding:10px;background:transparent;border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">↻ Force Full Sync</button>
+        <button onclick="switchProfile()" style="width:100%;margin-top:8px;padding:10px;background:rgba(232,201,122,0.08);border:0.5px solid rgba(232,201,122,0.3);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">👤 Switch Profile — <span id="settings-profile-name" style="font-style:italic"></span></button>
         <button onclick="resetAndPullFromSheets()" style="width:100%;margin-top:8px;padding:10px;background:rgba(240,149,149,0.06);border:0.5px solid rgba(240,149,149,0.3);border-radius:8px;color:var(--red);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">🗑 Reset Local Data &amp; Pull from Sheets</button>
         <div id="reset-status" style="font-size:11px;margin-top:6px;min-height:14px;color:var(--muted)"></div>
       </div>
@@ -971,19 +992,47 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
-const STATE = {
+// ── Global settings (shared across profiles) ──────────────────────────────────
+const GLOBAL = {
   scriptUrl: localStorage.getItem('cnr_script_url') || '',
   apiToken:  localStorage.getItem('cnr_api_token')  || '',
-  properties: JSON.parse(localStorage.getItem('cnr_properties') || '[]'),
-  tenants: JSON.parse(localStorage.getItem('cnr_tenants') || '[]'),
-  expenses: JSON.parse(localStorage.getItem('cnr_expenses') || '[]'),
-  maintenance: JSON.parse(localStorage.getItem('cnr_maintenance') || '[]'),
-  insurance: JSON.parse(localStorage.getItem('cnr_insurance') || '[]'),
-  leads: JSON.parse(localStorage.getItem('cnr_leads') || '[]'),
-  incomes: JSON.parse(localStorage.getItem('cnr_incomes') || '[]'),
-  reminders: JSON.parse(localStorage.getItem('cnr_reminders') || '[]'),
-  syncReady: false,   // true only after first sync completes — guards generateMonthlyRent
+  profiles:  JSON.parse(localStorage.getItem('cnr_profiles') || 'null'),
 };
+
+// ── Active session state (profile-specific) ───────────────────────────────────
+const STATE = {
+  // global
+  scriptUrl: GLOBAL.scriptUrl,
+  apiToken:  GLOBAL.apiToken,
+  // profile
+  profileId:  '',        // set by selectProfile()
+  syncReady:  false,
+  // data (loaded by loadProfileData)
+  properties: [],
+  tenants:    [],
+  expenses:   [],
+  maintenance:[],
+  insurance:  [],
+  leads:      [],
+  incomes:    [],
+  reminders:  [],
+};
+
+// Ensure at least one profile exists on first launch
+if(!GLOBAL.profiles || GLOBAL.profiles.length === 0){
+  // Migrate existing data into a "default" profile
+  GLOBAL.profiles = [{
+    id: 'default',
+    name: 'My Profile',
+    emoji: '🏠',
+    colorIdx: 0,
+  }];
+  localStorage.setItem('cnr_profiles', JSON.stringify(GLOBAL.profiles));
+}
+
+function saveProfiles(){
+  localStorage.setItem('cnr_profiles', JSON.stringify(GLOBAL.profiles));
+}
 
 const AVATARCOLORS = [
   {bg:'rgba(133,183,235,0.15)',c:'#85B7EB'},
@@ -995,13 +1044,32 @@ const AVATARCOLORS = [
 
 function avatarColor(i){return AVATARCOLORS[i % AVATARCOLORS.length]}
 function initials(name){return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
-function save(key){localStorage.setItem('cnr_'+key, JSON.stringify(STATE[key]))}
-function markDirty(key){
-  const dirty = JSON.parse(localStorage.getItem('cnr_dirty')||'[]');
-  if(!dirty.includes(key)){ dirty.push(key); localStorage.setItem('cnr_dirty', JSON.stringify(dirty)); }
+// ── Profile-aware storage key ─────────────────────────────────────────────────
+function storeKey(key){
+  const pid = STATE.profileId;
+  return (!pid || pid === 'default') ? `cnr_${key}` : `cnr_${pid}_${key}`;
 }
-function clearDirty(){localStorage.removeItem('cnr_dirty')}
-function getDirty(){return JSON.parse(localStorage.getItem('cnr_dirty')||'[]')}
+
+function save(key){localStorage.setItem(storeKey(key), JSON.stringify(STATE[key]))}
+function markDirty(key){
+  const dk = storeKey('dirty');
+  const dirty = JSON.parse(localStorage.getItem(dk)||'[]');
+  if(!dirty.includes(key)){ dirty.push(key); localStorage.setItem(dk, JSON.stringify(dirty)); }
+}
+function clearDirty(){localStorage.removeItem(storeKey('dirty'))}
+function getDirty(){return JSON.parse(localStorage.getItem(storeKey('dirty'))||'[]')}
+
+// ── Load a profile's data into STATE ─────────────────────────────────────────
+const DATA_KEYS = ['properties','tenants','expenses','maintenance','insurance','leads','incomes','reminders'];
+
+function loadProfileData(profileId){
+  STATE.profileId = profileId;
+  STATE.syncReady  = false;
+  const pk = k => (!profileId || profileId==='default') ? `cnr_${k}` : `cnr_${profileId}_${k}`;
+  DATA_KEYS.forEach(k => {
+    STATE[k] = JSON.parse(localStorage.getItem(pk(k)) || '[]');
+  });
+}
 function fmt(n){return '$'+Math.round(n).toLocaleString()}
 function today(){const d=new Date();return d.toLocaleDateString('en-US',{month:'long',year:'numeric'})}
 function daysUntil(dateStr){if(!dateStr)return 9999;const d=new Date(dateStr)-new Date();return Math.ceil(d/86400000)}
@@ -1046,34 +1114,31 @@ async function apiCall(action, payload={}){
 async function syncAll(){
   if(!STATE.scriptUrl){ showSetupIfNeeded(); return; }
   setSyncStatus('syncing');
+  const pid = STATE.profileId;
   try{
-    const res = await apiCall('getAll');
+    const res = await apiCall('getAll', {profileId: pid});
     if(res && res.success){
-      const KEYS  = ['properties','tenants','expenses','maintenance','insurance','leads','incomes','reminders'];
       const dirty = getDirty();
       const pushPromises = [];
 
-      for(const k of KEYS){
+      for(const k of DATA_KEYS){
         if(res[k] === undefined || res[k] === null) continue;
 
         if(dirty.includes(k)){
-          // Local was modified since last sync (add/edit/delete) → push local as truth
-          pushPromises.push(apiCall('setAll', {sheet: k, rows: STATE[k]}));
+          pushPromises.push(apiCall('setAll', {profileId: pid, sheet: k, rows: STATE[k]}));
         } else if(res[k].length > 0){
-          // No local changes → pull from Sheets (new data from another device)
           STATE[k] = res[k];
           save(k);
           if(k === 'incomes') normaliseIncomes();
         } else if(STATE[k].length > 0){
-          // Sheets is empty but local has data → first push (e.g. new install on this device)
-          pushPromises.push(apiCall('setAll', {sheet: k, rows: STATE[k]}));
+          pushPromises.push(apiCall('setAll', {profileId: pid, sheet: k, rows: STATE[k]}));
         }
       }
 
       if(pushPromises.length > 0){
         await Promise.all(pushPromises);
       }
-      clearDirty(); // All changes are now in sync
+      clearDirty();
       STATE.syncReady = true;
       renderAll();
       setSyncStatus('ok');
@@ -1100,8 +1165,7 @@ async function pushRow(sheet, row){
   const key = SHEET_TO_KEY[sheet] || sheet;
   const rows = STATE[key] || [];
   setSyncStatus('syncing');
-  // rows = current STATE collection (passed by deleteLead/deleteRecord for sync after delete)
-  apiCall('setAll', {sheet:key, rows}).then(res=>{
+  apiCall('setAll', {profileId: STATE.profileId, sheet:key, rows}).then(res=>{
     if(res && res.success) setSyncStatus('ok');
     else{ console.warn('pushRow failed:', res); setSyncStatus('error'); }
   }).catch(e=>{ console.warn('pushRow error:', e); setSyncStatus('error'); });
@@ -1622,18 +1686,30 @@ function generateMonthlyRent(){
   }
 }
 
-// Called after sync — normalise autoGenerated to string 'true'/'false'
-// so the dedup check is always consistent regardless of source
+// Called after sync — normalise fields that Sheets may have mangled
 function normaliseIncomes(){
   let changed = false;
   (STATE.incomes||[]).forEach(i=>{
+    // Fix boolean autoGenerated (Sheets stores TRUE/FALSE as booleans)
     if(typeof i.autoGenerated === 'boolean'){
       i.autoGenerated = String(i.autoGenerated);
       changed = true;
     }
+    // Fix boolean paid
     if(typeof i.paid === 'boolean'){
       i.paid = i.paid ? 'Paid' : 'Pending';
       changed = true;
+    }
+    // Fix dates that Sheets converted from 'YYYY-MM-DD' to 'Mon Jun 01 2026...'
+    if(i.date && !/^\d{4}-\d{2}-\d{2}$/.test(i.date)){
+      const parsed = new Date(i.date);
+      if(!isNaN(parsed)){
+        const y = parsed.getFullYear();
+        const m = String(parsed.getMonth()+1).padStart(2,'0');
+        const d = String(parsed.getDate()).padStart(2,'0');
+        i.date = `${y}-${m}-${d}`;
+        changed = true;
+      }
     }
   });
   if(changed) save('incomes');
@@ -1910,6 +1986,7 @@ function renderInsurance(){
 // RENDER ALL
 // ══════════════════════════════════════════════
 function renderAll(){
+  updateProfileBadge();
   renderDashboard();
   renderProperties();
   renderTenants();
@@ -3132,6 +3209,8 @@ function openSettings(){
   if(urlInput) urlInput.value = STATE.scriptUrl || '';
   const tokenInput = document.getElementById('settings-api-token');
   if(tokenInput) tokenInput.value = STATE.apiToken || '';
+  const profileNameEl = document.getElementById('settings-profile-name');
+  if(profileNameEl) profileNameEl.textContent = currentProfileName();
   document.getElementById('st-props').textContent    = STATE.properties.length + ' records';
   document.getElementById('st-tenants').textContent  = STATE.tenants.length + ' records';
   document.getElementById('st-leads').textContent    = STATE.leads.length + ' records';
@@ -3151,31 +3230,23 @@ async function resetAndPullFromSheets(){
     return;
   }
   const confirmed = confirm(
-    'This will delete ALL local data on this device and replace it with what is stored in Google Sheets.\n\nContinue?'
+    `This will delete all local data for profile "${currentProfileName()}" and replace it with what is in Google Sheets.\n\nContinue?`
   );
   if(!confirmed) return;
 
   statusEl.textContent = 'Clearing local data…';
   statusEl.style.color = 'var(--muted)';
 
-  // Wipe all local data keys
-  const KEYS = ['properties','tenants','expenses','maintenance','insurance','leads','incomes','reminders'];
-  KEYS.forEach(k=>{
-    STATE[k] = [];
-    localStorage.removeItem('cnr_' + k);
-  });
-  clearDirty(); // no local changes to push
+  DATA_KEYS.forEach(k=>{ STATE[k] = []; localStorage.removeItem(storeKey(k)); });
+  clearDirty();
 
   statusEl.textContent = 'Pulling from Google Sheets…';
 
   try{
-    const res = await apiCall('getAll');
+    const res = await apiCall('getAll', {profileId: STATE.profileId});
     if(res && res.success){
-      KEYS.forEach(k=>{
-        if(res[k] && res[k].length > 0){
-          STATE[k] = res[k];
-          localStorage.setItem('cnr_' + k, JSON.stringify(STATE[k]));
-        }
+      DATA_KEYS.forEach(k=>{
+        if(res[k] && res[k].length > 0){ STATE[k] = res[k]; save(k); }
       });
       normaliseIncomes();
       STATE.syncReady = true;
@@ -3184,7 +3255,7 @@ async function resetAndPullFromSheets(){
       statusEl.textContent = '✓ Done — local data replaced with Sheets data.';
       statusEl.style.color = 'var(--green)';
     } else {
-      statusEl.textContent = '✗ Pull failed — Sheets returned an error. Local data cleared.';
+      statusEl.textContent = '✗ Pull failed — Sheets returned an error.';
       statusEl.style.color = 'var(--red)';
     }
   } catch(e){
@@ -3327,15 +3398,101 @@ function lockApp(){
 function unlockApp(){
   localStorage.setItem('cnr_unlock_ts', Date.now().toString());
   document.getElementById('login-screen').classList.add('hidden');
-  document.getElementById('app').style.display='flex';
-  // Render local data immediately — never show blank app
+  // Show profile selection instead of going straight to app
+  showProfileScreen();
+}
+
+// ── Profile colours ───────────────────────────────────────────────────────────
+const PROFILE_COLORS = ['#E8C97A','#5DCAA5','#85B7EB','#F59595','#C49FE3','#F5C85A'];
+const PROFILE_EMOJIS = ['🏠','👤','🏡','🌟','💼','🔑','🏢','🌿'];
+
+function currentProfileName(){
+  const p = GLOBAL.profiles.find(p=>p.id===STATE.profileId);
+  return p ? p.name : 'Profile';
+}
+
+// ── Profile screen ────────────────────────────────────────────────────────────
+function showProfileScreen(){
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('profile-screen').classList.add('show');
+  renderProfileScreen();
+}
+
+function renderProfileScreen(){
+  const list = document.getElementById('profile-list');
+  list.innerHTML = GLOBAL.profiles.map(p=>{
+    const color = PROFILE_COLORS[p.colorIdx||0];
+    const initial = (p.name||'?')[0].toUpperCase();
+    // Count total records for this profile across all data keys
+    const totalRecs = DATA_KEYS.reduce((acc,k)=>{
+      const pk = (!p.id||p.id==='default') ? `cnr_${k}` : `cnr_${p.id}_${k}`;
+      const arr = JSON.parse(localStorage.getItem(pk)||'[]');
+      return acc + arr.length;
+    },0);
+    return `
+    <div class="profile-card" onclick="selectProfile('${p.id}')">
+      <div class="profile-avatar" style="background:${color}">${initial}</div>
+      <div style="flex:1;min-width:0">
+        <div class="profile-card-name">${p.name}</div>
+        <div class="profile-card-sub">${totalRecs} record${totalRecs!==1?'s':''}</div>
+      </div>
+      <button class="profile-edit-btn" onclick="event.stopPropagation();openRenameProfile('${p.id}')">✏ Rename</button>
+    </div>`;
+  }).join('');
+}
+
+async function selectProfile(profileId){
+  document.getElementById('profile-screen').classList.remove('show');
+  sessionStorage.setItem('cnr_active_profile', profileId);
+  loadProfileData(profileId);
+  document.getElementById('app').style.display = 'flex';
   renderAll();
-  if(!STATE.scriptUrl){
-    setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),400);
+  if(STATE.scriptUrl){
+    setTimeout(()=>syncAll(), 300);
   } else {
-    // Background sync after local render
-    setTimeout(()=>syncAll(), 400);
+    STATE.syncReady = true;
+    setTimeout(()=>document.getElementById('setup-banner').classList.add('show'), 500);
   }
+}
+
+function switchProfile(){
+  // Return to profile screen without logging out
+  showProfileScreen();
+}
+
+// ── Add profile ───────────────────────────────────────────────────────────────
+function showAddProfileDialog(){
+  const name = prompt('Profile name (e.g. "Carlos" or "Maria"):');
+  if(!name || !name.trim()) return;
+  const colorIdx = GLOBAL.profiles.length % PROFILE_COLORS.length;
+  const id = 'p_' + Date.now().toString(36);
+  GLOBAL.profiles.push({id, name: name.trim(), colorIdx});
+  saveProfiles();
+  renderProfileScreen();
+}
+
+// ── Rename profile ────────────────────────────────────────────────────────────
+function openRenameProfile(profileId){
+  const p = GLOBAL.profiles.find(x=>x.id===profileId);
+  if(!p) return;
+  const newName = prompt('Rename profile:', p.name);
+  if(!newName || !newName.trim()) return;
+  p.name = newName.trim();
+  saveProfiles();
+  renderProfileScreen();
+  // Also update header if this is the active profile
+  if(STATE.profileId === profileId) updateProfileBadge();
+}
+
+// ── Profile badge in app header ───────────────────────────────────────────────
+function updateProfileBadge(){
+  const badge = document.getElementById('profile-badge');
+  if(!badge) return;
+  const p = GLOBAL.profiles.find(x=>x.id===STATE.profileId);
+  if(!p) return;
+  const color = PROFILE_COLORS[p.colorIdx||0];
+  badge.textContent = (p.name||'?')[0].toUpperCase();
+  badge.style.background = color;
 }
 
 let failCount = parseInt(localStorage.getItem('cnr_fails')||'0');
@@ -3355,7 +3512,6 @@ function submitLogin(){
     localStorage.removeItem('cnr_lock_until');
     document.getElementById('login-error').textContent='';
     document.getElementById('login-attempts').textContent='';
-    // Fade out login
     const ls=document.getElementById('login-screen');
     ls.style.transition='opacity 0.4s';
     ls.style.opacity='0';
@@ -3394,9 +3550,6 @@ function toggleEye(){
 // INIT
 // ══════════════════════════════════════════════
 window.addEventListener('load',()=>{
-  // Logo is embedded as base64 — no file loading needed
-
-  // Hide loading
   setTimeout(()=>{
     const l=document.getElementById('loading');
     l.style.transition='opacity 0.4s';
@@ -3404,19 +3557,23 @@ window.addEventListener('load',()=>{
     setTimeout(()=>l.style.display='none',400);
   },700);
 
-  // Check session
   if(isUnlocked()){
     document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('app').style.display='flex';
-    // Always render local data first so app is usable immediately
-    renderAll();
-    if(STATE.scriptUrl){
-      // Sync in background — won't block UI
-      setTimeout(()=>syncAll(), 300);
+    // Restore profile from session (so refresh doesn't force re-select)
+    const savedProfile = sessionStorage.getItem('cnr_active_profile');
+    if(savedProfile && GLOBAL.profiles.find(p=>p.id===savedProfile)){
+      loadProfileData(savedProfile);
+      document.getElementById('app').style.display='flex';
+      renderAll();
+      if(STATE.scriptUrl){
+        setTimeout(()=>syncAll(), 300);
+      } else {
+        STATE.syncReady = true;
+        setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),500);
+      }
     } else {
-      // No sync configured — local data is already final, safe to generate rent
-      STATE.syncReady = true;
-      setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),500);
+      // Session exists but no profile chosen yet — show profile screen
+      showProfileScreen();
     }
   } else {
     document.getElementById('app').style.display='none';
