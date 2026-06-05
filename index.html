@@ -2593,8 +2593,12 @@ function openModal(type){
     const opts=typeof f.options==='function'?f.options():f.options;
     if(f.type==='checkbox-forrent')
       return buildToggleField('mf-forRent','🏠 For Rent','Property is available for rent',true);
-    if(f.type==='select')
-      return `<div class="field"><label>${f.label}</label><select id="mf-${f.id}">${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+    if(f.type==='select'){
+      const onchange = (type === 'tenant' && f.id === 'property')
+        ? ` onchange="autoFillTenantRent(this.value)"`
+        : '';
+      return `<div class="field"><label>${f.label}</label><select id="mf-${f.id}"${onchange}>${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+    }
     if(f.type==='textarea')
       return `<div class="field"><label>${f.label}</label><textarea id="mf-${f.id}" placeholder="${f.placeholder||''}"></textarea></div>`;
     return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}"/></div>`;
@@ -2603,6 +2607,17 @@ function openModal(type){
   const dateField=document.getElementById('mf-date');
   if(dateField) dateField.value=new Date().toISOString().split('T')[0];
   document.getElementById('modal-overlay').classList.add('show');
+}
+
+function autoFillTenantRent(selectedPropertyName){
+  const rentField = document.getElementById('mf-rent');
+  if(!rentField) return;
+  // Only auto-fill if the rent field is currently empty
+  if(rentField.value && rentField.value.trim() !== '') return;
+  const prop = STATE.properties.find(p => p.name === selectedPropertyName);
+  if(prop && prop.rent && Number(prop.rent) > 0){
+    rentField.value = prop.rent;
+  }
 }
 
 function saveModal(){
