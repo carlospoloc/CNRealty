@@ -1018,15 +1018,10 @@ const STATE = {
   reminders:  [],
 };
 
-// Ensure at least one profile exists on first launch
+// Ensure at least one profile exists locally on first launch
+// (Sheets may have more — showProfileScreen will pull and override)
 if(!GLOBAL.profiles || GLOBAL.profiles.length === 0){
-  // Migrate existing data into a "default" profile
-  GLOBAL.profiles = [{
-    id: 'default',
-    name: 'My Profile',
-    emoji: '🏠',
-    colorIdx: 0,
-  }];
+  GLOBAL.profiles = [{id:'default', name:'My Profile', colorIdx:0}];
   localStorage.setItem('cnr_profiles', JSON.stringify(GLOBAL.profiles));
 }
 
@@ -3303,8 +3298,17 @@ async function settingsSaveUrl(){
   document.getElementById('settings-status').textContent = '✓ Saved — syncing now…';
   document.getElementById('settings-status').style.color = 'var(--green)';
   document.getElementById('setup-banner').classList.remove('show');
-  // Push profiles so other devices can see them immediately
-  await apiCall('setProfiles', {profiles: GLOBAL.profiles}).catch(()=>{});
+  // Pull profiles from Sheets first — if they exist, use them (don't overwrite)
+  // Only push local profiles if Sheets has none (first-ever setup)
+  try{
+    const pr = await apiCall('getProfiles');
+    if(pr && pr.success && Array.isArray(pr.profiles) && pr.profiles.length > 0){
+      GLOBAL.profiles = pr.profiles;
+      localStorage.setItem('cnr_profiles', JSON.stringify(GLOBAL.profiles));
+    } else {
+      await apiCall('setProfiles', {profiles: GLOBAL.profiles});
+    }
+  } catch(e){}
   await syncAll();
   document.getElementById('settings-status').textContent = '✓ Saved and sync complete';
 }
