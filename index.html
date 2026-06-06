@@ -2144,11 +2144,14 @@ function openLeadModal(leadId=null){
     <div class="field"><label>Qualified Score (1–5)</label><select id="mf-score">${[1,2,3,4,5].map(n=>`<option value="${n}" ${lead&&Number(lead.score)===n?'selected':''}>${n} ${'★'.repeat(n)}</option>`).join('')}</select></div>
     <div class="field"><label>Status</label><select id="mf-status"><option ${lead&&lead.status==='Active'?'selected':''}>Active</option><option ${lead&&lead.status==='Inactive'?'selected':''}>Inactive</option></select></div>
     <div class="field"><label>Sales Process</label><select id="mf-salesProcess">${PROCESS_STEPS.map(s=>`<option ${lead&&lead.salesProcess===s?'selected':''}>${s}</option>`).join('')}</select></div>
-    <div class="field"><label>Interview Date & Time</label><input id="mf-interviewDate" type="datetime-local" value="${lead?normalizeDatetime(lead.interviewDate||'')+'':''}"/></div>
-    <div class="field"><label>Contract Start Date Proposed</label><input id="mf-contractStartDate" type="date" value="${lead?normalizeDate(lead.contractStartDate||'')+'':''}"/></div>
+    <div class="field"><label>Interview Date & Time</label><input id="mf-interviewDate" type="datetime-local"/></div>
+    <div class="field"><label>Contract Start Date Proposed</label><input id="mf-contractStartDate" type="date"/></div>
     <div class="field"><label>Comments</label><textarea id="mf-comments" placeholder="Notes about this lead...">${lead?lead.comments||'':''}</textarea></div>
     ${buildToggleField('mf-favorite','⭐ Mark as Favorite','Highlight this lead as a priority',!!(lead&&(lead.favorite==='1'||lead.favorite===true||lead.favorite==='true')))}
   `;
+  // Set date fields programmatically
+  document.getElementById('mf-interviewDate').value   = lead ? normalizeDatetime(lead.interviewDate||'')    : '';
+  document.getElementById('mf-contractStartDate').value = lead ? normalizeDate(lead.contractStartDate||'') : '';
   currentModal = 'lead';
   document.getElementById('modal-overlay').classList.add('show');
 }
@@ -2223,10 +2226,12 @@ function convertLeadToTenant(leadId){
     <div class="field"><label>Phone</label><input id="mf-phone" type="tel" value="${lead.phone||''}"/></div>
     <div class="field"><label>Monthly Rent ($)</label><input id="mf-rent" type="number" placeholder="e.g. 1850"/></div>
     <div class="field"><label>Rent Status</label><select id="mf-rentStatus"><option>On time</option><option>Overdue</option><option>Renewing</option></select></div>
-    <div class="field"><label>Lease Start Date</label><input id="mf-leaseStart" type="date" value="${normalizeDate(lead.contractStartDate||'')}"/></div>
+    <div class="field"><label>Lease Start Date</label><input id="mf-leaseStart" type="date"/></div>
     <div class="field"><label>Lease End Date</label><input id="mf-leaseEnd" type="date"/></div>
     <input type="hidden" id="mf-convertLeadId" value="${leadId}"/>
   `;
+  // Set date fields programmatically
+  document.getElementById('mf-leaseStart').value = normalizeDate(lead.contractStartDate||'');
   currentModal = 'convertLead';
   document.getElementById('modal-overlay').classList.add('show');
 }
@@ -2598,9 +2603,13 @@ function openModal(type){
       return `<div class="field"><label>${f.label}</label><textarea id="mf-${f.id}" placeholder="${f.placeholder||''}"></textarea></div>`;
     return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}"/></div>`;
   }).join('');
-  // default date to today
-  const dateField=document.getElementById('mf-date');
-  if(dateField) dateField.value=new Date().toISOString().split('T')[0];
+
+  // Set date defaults programmatically — never via HTML attribute value
+  const today = new Date().toISOString().split('T')[0];
+  fields.filter(f=>f.type==='date').forEach(f=>{
+    const el = document.getElementById('mf-'+f.id);
+    if(el) el.value = today;
+  });
   document.getElementById('modal-overlay').classList.add('show');
 }
 
@@ -3117,16 +3126,22 @@ function openEditModal(type, id){
     if(f.type==='textarea'){
       return `<div class="field"><label>${f.label}</label><textarea id="mf-${f.id}" placeholder="${f.placeholder||''}">${val}</textarea></div>`;
     }
-    // For date fields: normalize value to YYYY-MM-DD so browser input[type=date] accepts it
-    let safeVal = val;
-    if(f.type === 'date' && val){
-      safeVal = normalizeDate(val);
+    // Render date/datetime inputs without value in HTML — set programmatically below
+    if(f.type==='date' || f.type==='datetime-local'){
+      return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}"/></div>`;
     }
-    if(f.type === 'datetime-local' && val){
-      safeVal = normalizeDatetime(val);
-    }
-    return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}" value="${safeVal}"/></div>`;
+    return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}" value="${val}"/></div>`;
   }).join('');
+
+  // Set date/datetime values programmatically — avoids HTML attribute issues on iOS Safari
+  fields.forEach(f=>{
+    if(f.type==='date' || f.type==='datetime-local'){
+      const el  = document.getElementById('mf-'+f.id);
+      if(!el) return;
+      const raw = record[f.id] || '';
+      el.value  = f.type==='date' ? normalizeDate(raw) : normalizeDatetime(raw);
+    }
+  });
 
   // Set currentModal so saveModal routes correctly
   currentModal = 'editRecord';
