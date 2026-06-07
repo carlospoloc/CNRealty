@@ -175,17 +175,10 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
 /* ── LOGIN SCREEN ── */
 #login-screen{position:fixed;inset:0;background:var(--navy);z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px}
 #login-screen.hidden{display:none}
-/* ── Profile Selection Screen ── */
-#profile-screen{position:fixed;inset:0;background:var(--navy);z-index:1900;display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px}
-#profile-screen.show{display:flex}
-.profile-card{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--navy2);border:0.5px solid var(--border2);border-radius:14px;cursor:pointer;transition:border-color .2s,background .2s;width:100%;max-width:340px}
-.profile-card:active{background:var(--navy4);border-color:var(--gold2)}
-.profile-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;font-weight:700;color:var(--navy)}
-.profile-card-name{font-family:'Cinzel',serif;font-size:15px;font-weight:600;color:var(--text);letter-spacing:.5px}
-.profile-card-sub{font-size:11px;color:var(--muted);margin-top:2px}
-.profile-edit-btn{margin-left:auto;flex-shrink:0;background:transparent;border:0.5px solid var(--border2);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);cursor:pointer}
-.profile-add-btn{width:100%;max-width:340px;padding:13px;background:transparent;border:1px dashed var(--border2);border-radius:14px;color:var(--muted);font-size:13px;cursor:pointer;font-family:'Lato',sans-serif;letter-spacing:.3px;margin-top:4px}
-.profile-add-btn:active{background:var(--navy2)}
+/* ── Face ID button ── */
+.faceid-btn{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;margin-top:12px;padding:12px;background:rgba(133,183,235,0.08);border:0.5px solid rgba(133,183,235,0.3);border-radius:12px;cursor:pointer;font-family:'Lato',sans-serif;color:#85B7EB;font-size:13px;letter-spacing:.3px;transition:background .2s}
+.faceid-btn:active{background:rgba(133,183,235,0.16)}
+.faceid-icon{font-size:28px;line-height:1}
 .login-logo-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:36px}
 .login-logo-img{width:200px;height:130px;border-radius:12px;object-fit:contain;object-position:center;background:var(--navy2);border:0.5px solid var(--border);margin-bottom:16px;padding:8px}
 .login-brand{font-family:'Cinzel',serif;font-size:22px;font-weight:600;color:var(--gold2);letter-spacing:1px;text-align:center}
@@ -467,6 +460,13 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
       </div>
     </div>
     <button class="login-btn" onclick="submitLogin()">Enter ❖</button>
+    <div id="faceid-login-btn" style="display:none">
+      <button class="faceid-btn" onclick="loginWithFaceId()">
+        <span class="faceid-icon">🔒</span>
+        <span>Use Face ID / Biometrics</span>
+      </button>
+      <div style="text-align:center;margin-top:8px;font-size:11px;color:var(--muted);cursor:pointer" onclick="document.getElementById('faceid-login-btn').style.display='none'">Use password instead</div>
+    </div>
     <div class="login-error" id="login-error"></div>
     <div class="login-attempts" id="login-attempts"></div>
   </div>
@@ -476,14 +476,6 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
   <div class="logo-big">Coronado Nova</div>
   <div class="logo-small">Realty</div>
   <div class="spinner"></div>
-</div>
-
-<!-- PROFILE SELECTION SCREEN -->
-<div id="profile-screen">
-  <div style="font-family:'Cinzel',serif;font-size:20px;color:var(--gold2);letter-spacing:2px;margin-bottom:6px">CORONADO NOVA</div>
-  <div style="font-size:11px;color:var(--muted);margin-bottom:32px;letter-spacing:1.5px;text-transform:uppercase">Select Profile</div>
-  <div id="profile-list" style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px"></div>
-  <button class="profile-add-btn" onclick="showAddProfileDialog()" style="margin-top:14px">+ Add Profile</button>
 </div>
 
 <div id="toast"></div>
@@ -511,7 +503,6 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
       </div>
     </div>
     <div style="display:flex;gap:7px;align-items:center">
-      <button onclick="switchProfile()" id="profile-badge" title="Switch Profile" style="width:30px;height:30px;border-radius:50%;background:var(--gold2);color:var(--navy);font-size:13px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">?</button>
       <button class="sync-btn" onclick="syncAll()"><span class="sync-icon">↻</span> Sync</button>
       <button class="sync-btn" onclick="openSettings()" title="Settings" style="padding:4px 8px;font-size:15px;">⚙</button>
     </div>
@@ -678,10 +669,6 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
           <div class="row"><span class="rl">Outstanding rent</span><span class="rv v-red" id="f-outstanding-detail">—</span></div>
         </div>
         <div class="card">
-          <div class="card-title" style="margin-bottom:6px">This Month's Rent</div>
-          <div id="rent-payment-list"></div>
-        </div>
-        <div class="card">
           <div class="card-title" style="margin-bottom:10px">Recent Activity</div>
           <div id="fin-recent-list"></div>
         </div>
@@ -812,11 +799,6 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
           <label>Apps Script Web App URL</label>
           <input id="settings-script-url" type="url" style="width:100%;padding:9px 12px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;font-family:'Lato',sans-serif;outline:none" placeholder="https://script.google.com/macros/s/.../exec"/>
         </div>
-        <div class="field" style="margin-top:10px">
-          <label>API Secret Token</label>
-          <input id="settings-api-token" type="password" style="width:100%;padding:9px 12px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;font-family:'Lato',sans-serif;outline:none" placeholder="Paste your secret token here"/>
-          <div style="font-size:10px;color:var(--muted);margin-top:4px">Must match SECRET_TOKEN in your Google Apps Script</div>
-        </div>
         <div style="display:flex;gap:8px;margin-top:10px">
           <button onclick="settingsSaveUrl()" style="flex:2;padding:10px;background:rgba(201,168,76,0.12);border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">Save & Sync ✦</button>
           <button onclick="settingsTestUrl()" style="flex:1;padding:10px;background:rgba(133,183,235,0.08);border:0.5px solid rgba(133,183,235,0.3);border-radius:8px;color:var(--blue);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">Test</button>
@@ -834,9 +816,6 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
         <div class="row"><span class="rl">Maintenance</span><span class="rv v-blue" id="st-maint">—</span></div>
         <div class="row"><span class="rl">Insurance</span><span class="rv v-blue" id="st-ins">—</span></div>
         <button onclick="syncAll()" style="width:100%;margin-top:12px;padding:10px;background:transparent;border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">↻ Force Full Sync</button>
-        <button onclick="switchProfile()" style="width:100%;margin-top:8px;padding:10px;background:rgba(232,201,122,0.08);border:0.5px solid rgba(232,201,122,0.3);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">👤 Switch Profile — <span id="settings-profile-name" style="font-style:italic"></span></button>
-        <button onclick="resetAndPullFromSheets()" style="width:100%;margin-top:8px;padding:10px;background:rgba(240,149,149,0.06);border:0.5px solid rgba(240,149,149,0.3);border-radius:8px;color:var(--red);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">🗑 Reset Local Data &amp; Pull from Sheets</button>
-        <div id="reset-status" style="font-size:11px;margin-top:6px;min-height:14px;color:var(--muted)"></div>
       </div>
 
       <!-- Password change -->
@@ -856,6 +835,14 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
         </div>
         <button onclick="changePassword()" style="width:100%;margin-top:10px;padding:10px;background:rgba(240,149,149,0.08);border:0.5px solid rgba(240,149,149,0.3);border-radius:8px;color:var(--red);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">Update Password</button>
         <div id="pw-status" style="font-size:11px;margin-top:8px;min-height:16px;color:var(--muted)"></div>
+      </div>
+
+      <!-- Face ID / Biometrics -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:10px">🔒 Face ID / Biometrics</div>
+        <div id="faceid-status-text" style="font-size:12px;color:var(--muted);margin-bottom:10px"></div>
+        <button id="faceid-settings-btn" onclick="toggleFaceId()" style="width:100%;padding:10px;background:rgba(133,183,235,0.08);border:0.5px solid rgba(133,183,235,0.3);border-radius:8px;color:#85B7EB;font-size:12px;cursor:pointer;font-family:'Lato',sans-serif"></button>
+        <div id="faceid-settings-status" style="font-size:11px;margin-top:8px;min-height:14px;color:var(--muted)"></div>
       </div>
 
       <!-- App info -->
@@ -982,7 +969,7 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
     <button class="nav-btn active" onclick="showScreen('dashboard',this)"><span class="nav-icon">⊞</span>Home<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('properties',this)"><span class="nav-icon">⌂</span>Props<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('leads',this)"><span class="nav-icon">🎯</span>Leads<div class="nav-dot"></div></button>
-    <button class="nav-btn" onclick="showScreen('tenants',this)"><span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>Tenants<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="showScreen('tenants',this)"><span class="nav-icon">♟</span>Tenants<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('finance',this)"><span class="nav-icon">◈</span>Finance<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('reminders',this)"><span class="nav-icon">🔔</span>Remind<div class="nav-dot"></div></button>
   </div>
@@ -992,46 +979,17 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
-// ── Global settings (shared across profiles) ──────────────────────────────────
-const GLOBAL = {
-  scriptUrl: localStorage.getItem('cnr_script_url') || '',
-  apiToken:  localStorage.getItem('cnr_api_token')  || '',
-  profiles:  JSON.parse(localStorage.getItem('cnr_profiles') || 'null'),
-};
-
-// ── Active session state (profile-specific) ───────────────────────────────────
 const STATE = {
-  // global
-  scriptUrl: GLOBAL.scriptUrl,
-  apiToken:  GLOBAL.apiToken,
-  // profile
-  profileId:  '',        // set by selectProfile()
-  syncReady:  false,
-  // data (loaded by loadProfileData)
-  properties: [],
-  tenants:    [],
-  expenses:   [],
-  maintenance:[],
-  insurance:  [],
-  leads:      [],
-  incomes:    [],
-  reminders:  [],
+  scriptUrl: localStorage.getItem('cnr_script_url') || '',
+  properties: JSON.parse(localStorage.getItem('cnr_properties') || '[]'),
+  tenants: JSON.parse(localStorage.getItem('cnr_tenants') || '[]'),
+  expenses: JSON.parse(localStorage.getItem('cnr_expenses') || '[]'),
+  maintenance: JSON.parse(localStorage.getItem('cnr_maintenance') || '[]'),
+  insurance: JSON.parse(localStorage.getItem('cnr_insurance') || '[]'),
+  leads: JSON.parse(localStorage.getItem('cnr_leads') || '[]'),
+  incomes: JSON.parse(localStorage.getItem('cnr_incomes') || '[]'),
+  reminders: JSON.parse(localStorage.getItem('cnr_reminders') || '[]'),
 };
-
-// Ensure at least one profile exists locally on first launch
-// (Sheets may have more — showProfileScreen will pull and override)
-if(!GLOBAL.profiles || GLOBAL.profiles.length === 0){
-  GLOBAL.profiles = [{id:'default', name:'My Profile', colorIdx:0}];
-  localStorage.setItem('cnr_profiles', JSON.stringify(GLOBAL.profiles));
-}
-
-function saveProfiles(){
-  localStorage.setItem('cnr_profiles', JSON.stringify(GLOBAL.profiles));
-  // Push to Sheets so all devices stay in sync
-  if(STATE.scriptUrl){
-    apiCall('setProfiles', {profiles: GLOBAL.profiles}).catch(()=>{});
-  }
-}
 
 const AVATARCOLORS = [
   {bg:'rgba(133,183,235,0.15)',c:'#85B7EB'},
@@ -1043,32 +1001,7 @@ const AVATARCOLORS = [
 
 function avatarColor(i){return AVATARCOLORS[i % AVATARCOLORS.length]}
 function initials(name){return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
-// ── Profile-aware storage key ─────────────────────────────────────────────────
-function storeKey(key){
-  const pid = STATE.profileId;
-  return (!pid || pid === 'default') ? `cnr_${key}` : `cnr_${pid}_${key}`;
-}
-
-function save(key){localStorage.setItem(storeKey(key), JSON.stringify(STATE[key]))}
-function markDirty(key){
-  const dk = storeKey('dirty');
-  const dirty = JSON.parse(localStorage.getItem(dk)||'[]');
-  if(!dirty.includes(key)){ dirty.push(key); localStorage.setItem(dk, JSON.stringify(dirty)); }
-}
-function clearDirty(){localStorage.removeItem(storeKey('dirty'))}
-function getDirty(){return JSON.parse(localStorage.getItem(storeKey('dirty'))||'[]')}
-
-// ── Load a profile's data into STATE ─────────────────────────────────────────
-const DATA_KEYS = ['properties','tenants','expenses','maintenance','insurance','leads','incomes','reminders'];
-
-function loadProfileData(profileId){
-  STATE.profileId = profileId;
-  STATE.syncReady  = false;
-  const pk = k => (!profileId || profileId==='default') ? `cnr_${k}` : `cnr_${profileId}_${k}`;
-  DATA_KEYS.forEach(k => {
-    STATE[k] = JSON.parse(localStorage.getItem(pk(k)) || '[]');
-  });
-}
+function save(key){localStorage.setItem('cnr_'+key, JSON.stringify(STATE[key]))}
 function fmt(n){return '$'+Math.round(n).toLocaleString()}
 function today(){const d=new Date();return d.toLocaleDateString('en-US',{month:'long',year:'numeric'})}
 function daysUntil(dateStr){if(!dateStr)return 9999;const d=new Date(dateStr)-new Date();return Math.ceil(d/86400000)}
@@ -1092,7 +1025,7 @@ async function apiCall(action, payload={}){
     const res = await fetch(STATE.scriptUrl, {
       method:'POST',
       headers:{'Content-Type':'text/plain'},
-      body: JSON.stringify({action, token: STATE.apiToken, ...payload}),
+      body: JSON.stringify({action, ...payload}),
       signal: controller.signal
     });
     clearTimeout(timeoutId);
@@ -1113,35 +1046,26 @@ async function apiCall(action, payload={}){
 async function syncAll(){
   if(!STATE.scriptUrl){ showSetupIfNeeded(); return; }
   setSyncStatus('syncing');
-  const pid = STATE.profileId;
   try{
-    const res = await apiCall('getAll', {profileId: pid});
+    const res = await apiCall('getAll');
     if(res && res.success){
-      const dirty = getDirty();
-      const pushPromises = [];
-
-      for(const k of DATA_KEYS){
-        if(res[k] === undefined || res[k] === null) continue;
-
-        if(dirty.includes(k)){
-          pushPromises.push(apiCall('setAll', {profileId: pid, sheet: k, rows: STATE[k]}));
-        } else if(res[k].length > 0){
-          STATE[k] = res[k];
-          save(k);
-          if(k === 'incomes') normaliseIncomes();
-        } else if(STATE[k].length > 0){
-          pushPromises.push(apiCall('setAll', {profileId: pid, sheet: k, rows: STATE[k]}));
+      // Only replace a collection if the Sheet returned data for it
+      // (non-null AND either has rows OR the sheet explicitly confirmed empty)
+      const KEYS = ['properties','tenants','expenses','maintenance','insurance','leads','incomes','reminders'];
+      for(const k of KEYS){
+        if(res[k] !== undefined && res[k] !== null){
+          // Only overwrite local if Sheet has MORE or EQUAL records,
+          // or if local is empty — prevents wipe on first-deploy
+          if(res[k].length > 0 || STATE[k].length === 0){
+            STATE[k] = res[k];
+            save(k);
+          }
         }
       }
-
-      if(pushPromises.length > 0){
-        await Promise.all(pushPromises);
-      }
-      clearDirty();
-      STATE.syncReady = true;
       renderAll();
       setSyncStatus('ok');
     } else {
+      // Sync failed — keep local data, show warning
       setSyncStatus('error');
       renderAll();
     }
@@ -1164,7 +1088,8 @@ async function pushRow(sheet, row){
   const key = SHEET_TO_KEY[sheet] || sheet;
   const rows = STATE[key] || [];
   setSyncStatus('syncing');
-  apiCall('setAll', {profileId: STATE.profileId, sheet:key, rows}).then(res=>{
+  // rows = current STATE collection (passed by deleteLead/deleteRecord for sync after delete)
+  apiCall('setAll', {sheet:key, rows}).then(res=>{
     if(res && res.success) setSyncStatus('ok');
     else{ console.warn('pushRow failed:', res); setSyncStatus('error'); }
   }).catch(e=>{ console.warn('pushRow error:', e); setSyncStatus('error'); });
@@ -1201,7 +1126,6 @@ function showScreen(id, btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+id).classList.add('active');
   if(btn) btn.classList.add('active');
-  if(id==='finance') generateMonthlyRent();
 }
 
 // ══════════════════════════════════════════════
@@ -1279,10 +1203,8 @@ function renderDashboard(){
   const occ          = forRentProps.length ? Math.round(occupied/forRentProps.length*100) : 0;
   // Monthly rent: sum rent of all occupied properties (from property records)
   const monthlyRent  = props.filter(p=>p.status==='Occupied').reduce((a,p)=>a+Number(p.rent||0),0);
-  const now0         = new Date();
-  const mk0          = `${now0.getFullYear()}-${String(now0.getMonth()+1).padStart(2,'0')}`;
-  const rentColl     = (STATE.incomes||[]).filter(i=>i.autoGenerated==='true'&&i.paid==='Paid'&&(i.date||'').startsWith(mk0)).reduce((a,i)=>a+Number(i.amount||0),0);
-  const overdue      = (STATE.incomes||[]).filter(i=>i.autoGenerated==='true'&&i.paid==='Pending'&&(i.date||'').startsWith(mk0)).length;
+  const rentColl     = tenants.filter(t=>t.rentStatus==='On time').reduce((a,t)=>a+Number(t.rent||0),0);
+  const overdue      = tenants.filter(t=>t.rentStatus==='Overdue').length;
   document.getElementById('s-props').textContent   = monthlyRent ? fmt(monthlyRent) : '$0';
   document.getElementById('s-occ').textContent     = forRentProps.length ? occ+'%' : '—';
   document.getElementById('s-rent').textContent    = rentColl ? fmt(rentColl) : '$0';
@@ -1309,11 +1231,17 @@ function renderDashboard(){
     });
   }
 
-  // Rent income per month: use paid auto-generated records + manual income records
-  const paidIncomes2 = incomes.filter(i=> i.autoGenerated!=='true' || i.paid==='Paid');
-  const manualIncomeByMonth = sumByMonth(paidIncomes2, 'amount', 'date');
+  // Rent income per month: sum rent of on-time tenants assigned to that month
+  // For manual incomes use the date field; for rent use current on-time tenants spread across months
+  const manualIncomeByMonth = sumByMonth(incomes, 'amount', 'date');
   const expensesByMonth     = sumByMonth(expenses, 'amount', 'date');
-  const incomeByMonth       = manualIncomeByMonth;
+
+  // Add rent income as a flat value for the current month (recurring)
+  // For past months, use manual income records only
+  const incomeByMonth = manualIncomeByMonth.map((v,i)=>{
+    if(i===5) return v + rentColl; // current month: add rent collected
+    return v;
+  });
 
   const profitByMonth = incomeByMonth.map((v,i)=>v - expensesByMonth[i]);
 
@@ -1595,7 +1523,7 @@ function renderTenants(filter='all'){
   document.getElementById('tenant-count').textContent = STATE.tenants.length + ' active leases';
   const el = document.getElementById('tenants-list');
   if(list.length===0){
-    el.innerHTML=`<div class="empty"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="currentColor" style="opacity:0.4"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div><div class="empty-text">No tenants yet.<br/>Tap + Add to get started.</div></div>`;
+    el.innerHTML=`<div class="empty"><div class="empty-icon">♟</div><div class="empty-text">No tenants yet.<br/>Tap + Add to get started.</div></div>`;
     return;
   }
   el.innerHTML = list.map((t,i)=>{
@@ -1629,125 +1557,21 @@ function filterTenants(f,el){
 // ══════════════════════════════════════════════
 // RENDER FINANCE
 // ══════════════════════════════════════════════
-// AUTO RENT INCOME GENERATION
-// ══════════════════════════════════════════════
-function generateMonthlyRent(){
-  // Don't run until the first sync completes — prevents creating duplicate
-  // records before Sheets data has been pulled into STATE
-  if(!STATE.syncReady) return;
-
-  const now      = new Date();
-  const year     = now.getFullYear();
-  const month    = String(now.getMonth()+1).padStart(2,'0');
-  const monthKey = `${year}-${month}`;
-  const dueDate  = `${year}-${month}-01`;
-  const monthName= now.toLocaleString('default',{month:'long'});
-
-  const tenants = STATE.tenants || [];
-  // Always read fresh from STATE.incomes — never capture stale reference
-  let added = false;
-
-  for(const t of tenants){
-    if(!t.name || !t.name.trim()) continue;
-
-    const tId    = String(t.id || t.name);
-    const amount = Number(t.rent || 0);
-
-    // FIX 1: use String() coercion on autoGenerated so boolean true (from Sheets)
-    // and string 'true' (from localStorage) both match correctly
-    const exists = STATE.incomes.some(i=>
-      String(i.autoGenerated) === 'true' &&
-      String(i.tenantId) === tId &&
-      (i.date||'').startsWith(monthKey)
-    );
-    if(!exists){
-      STATE.incomes.push({
-        id:            'inc_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
-        description:   `Rent · ${t.name} · ${monthName} ${year}`,
-        property:      t.property || '—',
-        amount:        String(amount || 0),
-        category:      'Rent',
-        date:          dueDate,
-        paid:          'Pending',
-        tenantId:      tId,
-        autoGenerated: 'true',  // always stored as string
-        notes:         ''
-      });
-      added = true;
-    }
-  }
-
-  if(added){
-    save('incomes');
-    markDirty('incomes');
-    // FIX 2: push with correct sheet key (not null) so setAll targets the right sheet
-    if(STATE.scriptUrl) pushRow('incomes', null);
-  }
-}
-
-// Called after sync — normalise fields that Sheets may have mangled
-function normaliseIncomes(){
-  let changed = false;
-  (STATE.incomes||[]).forEach(i=>{
-    // Fix boolean autoGenerated (Sheets stores TRUE/FALSE as booleans)
-    if(typeof i.autoGenerated === 'boolean'){
-      i.autoGenerated = String(i.autoGenerated);
-      changed = true;
-    }
-    // Fix boolean paid
-    if(typeof i.paid === 'boolean'){
-      i.paid = i.paid ? 'Paid' : 'Pending';
-      changed = true;
-    }
-    // Fix dates that Sheets converted from 'YYYY-MM-DD' to 'Mon Jun 01 2026...'
-    if(i.date && !/^\d{4}-\d{2}-\d{2}$/.test(i.date)){
-      const parsed = new Date(i.date);
-      if(!isNaN(parsed)){
-        const y = parsed.getFullYear();
-        const m = String(parsed.getMonth()+1).padStart(2,'0');
-        const d = String(parsed.getDate()).padStart(2,'0');
-        i.date = `${y}-${m}-${d}`;
-        changed = true;
-      }
-    }
-  });
-  if(changed) save('incomes');
-}
-
-function toggleIncomePayment(id){
-  const idx = STATE.incomes.findIndex(i=>i.id===id);
-  if(idx<0) return;
-  STATE.incomes[idx].paid = STATE.incomes[idx].paid==='Paid' ? 'Pending' : 'Paid';
-  save('incomes');
-  if(STATE.scriptUrl) pushRow('incomes', null);
-  renderFinance();
-}
-
-// ══════════════════════════════════════════════
 function renderFinance(){
-  // Ensure current month's rent records exist before rendering
-  generateMonthlyRent();
-
   const tenants  = STATE.tenants;
   const expenses = STATE.expenses;
   const incomes  = STATE.incomes || [];
   document.getElementById('fin-period').textContent = today();
 
-  // Income = paid auto-generated rent + manual income records (manual assumed paid)
-  const paidIncomes  = incomes.filter(i=> i.autoGenerated!=='true' || i.paid==='Paid');
-  const rentIncome   = paidIncomes.filter(i=>i.category==='Rent' && i.autoGenerated==='true').reduce((a,i)=>a+Number(i.amount||0),0);
-  const manualIncome = incomes.filter(i=>i.autoGenerated!=='true').reduce((a,i)=>a+Number(i.amount||0),0);
-  const totalIncome  = rentIncome + manualIncome;
-  const totalExp     = expenses.reduce((a,e)=>a+Number(e.amount||0),0);
-
-  // Rent collection stats from auto-generated income records for current month
-  const now2      = new Date();
-  const monthKey2 = `${now2.getFullYear()}-${String(now2.getMonth()+1).padStart(2,'0')}`;
-  const thisMonthRent = incomes.filter(i=>i.autoGenerated==='true' && (i.date||'').startsWith(monthKey2));
-  const collected  = thisMonthRent.filter(i=>i.paid==='Paid').length;
-  const total      = thisMonthRent.length;
-  const outstanding= thisMonthRent.filter(i=>i.paid==='Pending').reduce((a,i)=>a+Number(i.amount||0),0);
-  const pct        = total ? Math.round(collected/total*100) : 0;
+  // Income = manual income records + rent from on-time tenants
+  const rentIncome  = tenants.filter(t=>t.rentStatus==='On time').reduce((a,t)=>a+Number(t.rent||0),0);
+  const manualIncome= incomes.reduce((a,i)=>a+Number(i.amount||0),0);
+  const totalIncome = rentIncome + manualIncome;
+  const totalExp    = expenses.reduce((a,e)=>a+Number(e.amount||0),0);
+  const outstanding = tenants.filter(t=>t.rentStatus==='Overdue').reduce((a,t)=>a+Number(t.rent||0),0);
+  const collected   = tenants.filter(t=>t.rentStatus==='On time').length;
+  const total       = tenants.length;
+  const pct         = total ? Math.round(collected/total*100) : 0;
 
   document.getElementById('f-income').textContent     = fmt(totalIncome);
   document.getElementById('f-expenses').textContent   = fmt(totalExp);
@@ -1755,34 +1579,8 @@ function renderFinance(){
   document.getElementById('f-outstanding').textContent= fmt(outstanding);
   document.getElementById('f-collected').textContent  = collected + ' / ' + total;
   document.getElementById('f-progress').style.width   = pct + '%';
-  document.getElementById('f-late').textContent       = thisMonthRent.filter(i=>i.paid==='Pending').length;
+  document.getElementById('f-late').textContent       = tenants.filter(t=>t.rentStatus==='Overdue').length;
   document.getElementById('f-outstanding-detail').textContent = fmt(outstanding);
-
-  // ── This Month's Rent — payment toggle list (Summary tab) ─────────────────
-  const rentPayEl = document.getElementById('rent-payment-list');
-  if(thisMonthRent.length === 0){
-    rentPayEl.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:4px 0">No tenants found. Make sure tenants are added in the Tenants screen.</div>';
-  } else {
-    rentPayEl.innerHTML = thisMonthRent.map(i => {
-      const paid = i.paid === 'Paid';
-      return `
-      <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border)">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.property||'—'}</div>
-          <div style="font-size:11px;color:var(--muted)">${(i.description||'').replace(/^Rent · [^·]+ · /,'')}</div>
-        </div>
-        <span style="font-size:13px;font-weight:700;color:${paid?'var(--green)':'var(--amber)'};flex-shrink:0">${fmt(i.amount)}</span>
-        <button onclick="toggleIncomePayment('${i.id}')" style="
-          flex-shrink:0;padding:6px 12px;font-size:11px;border-radius:8px;cursor:pointer;
-          font-family:'Lato',sans-serif;letter-spacing:.3px;white-space:nowrap;
-          border:0.5px solid ${paid?'rgba(93,202,165,0.5)':'rgba(245,200,90,0.5)'};
-          background:${paid?'rgba(93,202,165,0.12)':'rgba(245,200,90,0.12)'};
-          color:${paid?'var(--green)':'var(--amber)'}">
-          ${paid ? '✓ Paid' : 'Mark Paid'}
-        </button>
-      </div>`;
-    }).join('');
-  }
 
   // ── Recent Activity (combined income + expenses, sorted by date) ──────────
   const recentEl = document.getElementById('fin-recent-list');
@@ -1811,47 +1609,24 @@ function renderFinance(){
   // ── Income list ────────────────────────────────────────────────────────────
   const incomeEl = document.getElementById('income-list');
   if(incomes.length===0){
-    incomeEl.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">No income records yet. Rent records are auto-created each month when tenants are active.</div>';
+    incomeEl.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">No income records yet. Tap + Log Income to add one.</div>';
   } else {
-    // Sort: current month auto-generated first, then by date desc
-    const sorted = [...incomes].sort((a,b)=>{
-      const aAuto = a.autoGenerated==='true' ? 1 : 0;
-      const bAuto = b.autoGenerated==='true' ? 1 : 0;
-      if(aAuto!==bAuto) return bAuto-aAuto;
-      return (b.date||'').localeCompare(a.date||'');
-    });
-    incomeEl.innerHTML = sorted.map(i=>{
-      const isPaid    = i.paid==='Paid' || i.autoGenerated!=='true';
-      const isAuto    = i.autoGenerated==='true';
-      const amtColor  = isPaid ? 'var(--green)' : 'var(--amber)';
-      const iconBg    = isPaid ? 'rgba(93,202,165,0.1)' : 'rgba(245,200,90,0.1)';
-      const icon      = isPaid ? '💚' : '⏳';
-      const toggleBtn = isAuto ? `
-        <button onclick="toggleIncomePayment('${i.id}')" style="
-          padding:4px 10px;font-size:10px;border-radius:6px;cursor:pointer;
-          font-family:'Lato',sans-serif;letter-spacing:.3px;border:0.5px solid ${isPaid?'rgba(93,202,165,0.4)':'rgba(245,200,90,0.4)'};
-          background:${isPaid?'rgba(93,202,165,0.1)':'rgba(245,200,90,0.1)'};
-          color:${isPaid?'var(--green)':'var(--amber)'};white-space:nowrap">
-          ${isPaid?'✓ Paid':'Mark Paid'}
-        </button>` : '';
-      return `
+    incomeEl.innerHTML = [...incomes].reverse().map(i=>`
       <div class="exp-row">
-        <div class="exp-icon" style="background:${iconBg}">${icon}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.description||'—'}</div>
-          <div style="font-size:11px;color:var(--muted)">${i.property||'—'} · ${i.date||''}</div>
+        <div class="exp-icon" style="background:rgba(93,202,165,0.1)">💚</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${i.description||'—'}</div>
+          <div style="font-size:11px;color:var(--muted)">${i.property||'—'} · ${i.date||''} · ${i.category||''}</div>
           ${i.notes?`<div style="font-size:10px;color:var(--muted);font-style:italic">${i.notes}</div>`:''}
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
-          <span style="font-size:13px;font-weight:700;color:${amtColor}">+${fmt(i.amount)}</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+          <span style="font-size:13px;font-weight:700;color:var(--green)">+${fmt(i.amount)}</span>
           <div style="display:flex;gap:5px">
-            ${toggleBtn}
-            ${!isAuto?`<button class="lead-btn primary" style="padding:3px 8px;font-size:10px" onclick="openEditModal('income','${i.id}')">✏</button>`:''}
+            <button class="lead-btn primary" style="padding:3px 8px;font-size:10px" onclick="openEditModal('income','${i.id}')">✏</button>
             <button class="lead-btn danger" style="padding:3px 8px;font-size:10px" onclick="deleteRecord('income','${i.id}')">🗑</button>
           </div>
         </div>
-      </div>`;
-    }).join('');
+      </div>`).join('');
   }
 
   // ── Expenses list ──────────────────────────────────────────────────────────
@@ -1985,7 +1760,6 @@ function renderInsurance(){
 // RENDER ALL
 // ══════════════════════════════════════════════
 function renderAll(){
-  updateProfileBadge();
   renderDashboard();
   renderProperties();
   renderTenants();
@@ -2144,14 +1918,11 @@ function openLeadModal(leadId=null){
     <div class="field"><label>Qualified Score (1–5)</label><select id="mf-score">${[1,2,3,4,5].map(n=>`<option value="${n}" ${lead&&Number(lead.score)===n?'selected':''}>${n} ${'★'.repeat(n)}</option>`).join('')}</select></div>
     <div class="field"><label>Status</label><select id="mf-status"><option ${lead&&lead.status==='Active'?'selected':''}>Active</option><option ${lead&&lead.status==='Inactive'?'selected':''}>Inactive</option></select></div>
     <div class="field"><label>Sales Process</label><select id="mf-salesProcess">${PROCESS_STEPS.map(s=>`<option ${lead&&lead.salesProcess===s?'selected':''}>${s}</option>`).join('')}</select></div>
-    <div class="field"><label>Interview Date & Time</label><input id="mf-interviewDate" type="datetime-local"/></div>
-    <div class="field"><label>Contract Start Date Proposed</label><input id="mf-contractStartDate" type="date"/></div>
+    <div class="field"><label>Interview Date & Time</label><input id="mf-interviewDate" type="datetime-local" value="${lead?normalizeDatetime(lead.interviewDate||'')+'':''}"/></div>
+    <div class="field"><label>Contract Start Date Proposed</label><input id="mf-contractStartDate" type="date" value="${lead?normalizeDate(lead.contractStartDate||'')+'':''}"/></div>
     <div class="field"><label>Comments</label><textarea id="mf-comments" placeholder="Notes about this lead...">${lead?lead.comments||'':''}</textarea></div>
     ${buildToggleField('mf-favorite','⭐ Mark as Favorite','Highlight this lead as a priority',!!(lead&&(lead.favorite==='1'||lead.favorite===true||lead.favorite==='true')))}
   `;
-  // Set date fields programmatically
-  document.getElementById('mf-interviewDate').value   = lead ? normalizeDatetime(lead.interviewDate||'')    : '';
-  document.getElementById('mf-contractStartDate').value = lead ? normalizeDate(lead.contractStartDate||'') : '';
   currentModal = 'lead';
   document.getElementById('modal-overlay').classList.add('show');
 }
@@ -2226,12 +1997,10 @@ function convertLeadToTenant(leadId){
     <div class="field"><label>Phone</label><input id="mf-phone" type="tel" value="${lead.phone||''}"/></div>
     <div class="field"><label>Monthly Rent ($)</label><input id="mf-rent" type="number" placeholder="e.g. 1850"/></div>
     <div class="field"><label>Rent Status</label><select id="mf-rentStatus"><option>On time</option><option>Overdue</option><option>Renewing</option></select></div>
-    <div class="field"><label>Lease Start Date</label><input id="mf-leaseStart" type="date"/></div>
+    <div class="field"><label>Lease Start Date</label><input id="mf-leaseStart" type="date" value="${normalizeDate(lead.contractStartDate||'')}"/></div>
     <div class="field"><label>Lease End Date</label><input id="mf-leaseEnd" type="date"/></div>
     <input type="hidden" id="mf-convertLeadId" value="${leadId}"/>
   `;
-  // Set date fields programmatically
-  document.getElementById('mf-leaseStart').value = normalizeDate(lead.contractStartDate||'');
   currentModal = 'convertLead';
   document.getElementById('modal-overlay').classList.add('show');
 }
@@ -2593,35 +2362,16 @@ function openModal(type){
     const opts=typeof f.options==='function'?f.options():f.options;
     if(f.type==='checkbox-forrent')
       return buildToggleField('mf-forRent','🏠 For Rent','Property is available for rent',true);
-    if(f.type==='select'){
-      const onchange = (type === 'tenant' && f.id === 'property')
-        ? ` onchange="autoFillTenantRent(this.value)"`
-        : '';
-      return `<div class="field"><label>${f.label}</label><select id="mf-${f.id}"${onchange}>${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
-    }
+    if(f.type==='select')
+      return `<div class="field"><label>${f.label}</label><select id="mf-${f.id}">${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
     if(f.type==='textarea')
       return `<div class="field"><label>${f.label}</label><textarea id="mf-${f.id}" placeholder="${f.placeholder||''}"></textarea></div>`;
     return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}"/></div>`;
   }).join('');
-
-  // Set date defaults programmatically — never via HTML attribute value
-  const today = new Date().toISOString().split('T')[0];
-  fields.filter(f=>f.type==='date').forEach(f=>{
-    const el = document.getElementById('mf-'+f.id);
-    if(el) el.value = today;
-  });
+  // default date to today
+  const dateField=document.getElementById('mf-date');
+  if(dateField) dateField.value=new Date().toISOString().split('T')[0];
   document.getElementById('modal-overlay').classList.add('show');
-}
-
-function autoFillTenantRent(selectedPropertyName){
-  const rentField = document.getElementById('mf-rent');
-  if(!rentField) return;
-  // Only auto-fill if the rent field is currently empty
-  if(rentField.value && rentField.value.trim() !== '') return;
-  const prop = STATE.properties.find(p => p.name === selectedPropertyName);
-  if(prop && prop.rent && Number(prop.rent) > 0){
-    rentField.value = prop.rent;
-  }
 }
 
 function saveModal(){
@@ -2663,7 +2413,6 @@ function saveModal(){
 
   if(STATE[key]) STATE[key].push(row);
   save(key);
-  markDirty(key);
   pushRow(currentModal, row);
   closeModal();
   renderAll();
@@ -3126,22 +2875,16 @@ function openEditModal(type, id){
     if(f.type==='textarea'){
       return `<div class="field"><label>${f.label}</label><textarea id="mf-${f.id}" placeholder="${f.placeholder||''}">${val}</textarea></div>`;
     }
-    // Render date/datetime inputs without value in HTML — set programmatically below
-    if(f.type==='date' || f.type==='datetime-local'){
-      return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}"/></div>`;
+    // For date fields: normalize value to YYYY-MM-DD so browser input[type=date] accepts it
+    let safeVal = val;
+    if(f.type === 'date' && val){
+      safeVal = normalizeDate(val);
     }
-    return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}" value="${val}"/></div>`;
+    if(f.type === 'datetime-local' && val){
+      safeVal = normalizeDatetime(val);
+    }
+    return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}" value="${safeVal}"/></div>`;
   }).join('');
-
-  // Set date/datetime values programmatically — avoids HTML attribute issues on iOS Safari
-  fields.forEach(f=>{
-    if(f.type==='date' || f.type==='datetime-local'){
-      const el  = document.getElementById('mf-'+f.id);
-      if(!el) return;
-      const raw = record[f.id] || '';
-      el.value  = f.type==='date' ? normalizeDate(raw) : normalizeDatetime(raw);
-    }
-  });
 
   // Set currentModal so saveModal routes correctly
   currentModal = 'editRecord';
@@ -3218,7 +2961,6 @@ function deleteRecord(type, id){
   if(!confirm('Delete "'+name+'"? This cannot be undone.')) return;
   STATE[key] = STATE[key].filter(r=>String(r.id)!==String(id));
   save(key);
-  markDirty(key);
   // Push the full updated collection using the resolved key (not the type shorthand)
   // This ensures deletions are synced to Google Sheets correctly
   if(STATE.scriptUrl){
@@ -3234,12 +2976,10 @@ function deleteRecord(type, id){
 // SETTINGS SCREEN
 // ══════════════════════════════════════════════
 function openSettings(){
+  // Pre-fill current URL
   const urlInput = document.getElementById('settings-script-url');
   if(urlInput) urlInput.value = STATE.scriptUrl || '';
-  const tokenInput = document.getElementById('settings-api-token');
-  if(tokenInput) tokenInput.value = STATE.apiToken || '';
-  const profileNameEl = document.getElementById('settings-profile-name');
-  if(profileNameEl) profileNameEl.textContent = currentProfileName();
+  // Fill local record counts
   document.getElementById('st-props').textContent    = STATE.properties.length + ' records';
   document.getElementById('st-tenants').textContent  = STATE.tenants.length + ' records';
   document.getElementById('st-leads').textContent    = STATE.leads.length + ' records';
@@ -3248,49 +2988,9 @@ function openSettings(){
   document.getElementById('st-ins').textContent      = STATE.insurance.length + ' records';
   document.getElementById('settings-status').textContent = '';
   document.getElementById('pw-status').textContent = '';
+  updateFaceIdSettingsUI();
+  // Navigate to settings screen (no nav btn — accessed via header)
   showScreen('settings', null);
-}
-
-async function resetAndPullFromSheets(){
-  const statusEl = document.getElementById('reset-status');
-  if(!STATE.scriptUrl){
-    statusEl.textContent = '✗ No Script URL configured.';
-    statusEl.style.color = 'var(--red)';
-    return;
-  }
-  const confirmed = confirm(
-    `This will delete all local data for profile "${currentProfileName()}" and replace it with what is in Google Sheets.\n\nContinue?`
-  );
-  if(!confirmed) return;
-
-  statusEl.textContent = 'Clearing local data…';
-  statusEl.style.color = 'var(--muted)';
-
-  DATA_KEYS.forEach(k=>{ STATE[k] = []; localStorage.removeItem(storeKey(k)); });
-  clearDirty();
-
-  statusEl.textContent = 'Pulling from Google Sheets…';
-
-  try{
-    const res = await apiCall('getAll', {profileId: STATE.profileId});
-    if(res && res.success){
-      DATA_KEYS.forEach(k=>{
-        if(res[k] && res[k].length > 0){ STATE[k] = res[k]; save(k); }
-      });
-      normaliseIncomes();
-      STATE.syncReady = true;
-      renderAll();
-      setSyncStatus('ok');
-      statusEl.textContent = '✓ Done — local data replaced with Sheets data.';
-      statusEl.style.color = 'var(--green)';
-    } else {
-      statusEl.textContent = '✗ Pull failed — Sheets returned an error.';
-      statusEl.style.color = 'var(--red)';
-    }
-  } catch(e){
-    statusEl.textContent = '✗ Connection error. Local data cleared but pull failed.';
-    statusEl.style.color = 'var(--red)';
-  }
 }
 
 async function settingsSaveUrl(){
@@ -3300,32 +3000,14 @@ async function settingsSaveUrl(){
     document.getElementById('settings-status').style.color = 'var(--red)';
     return;
   }
-  const t = document.getElementById('settings-api-token').value.trim();
-  if(!t){
-    document.getElementById('settings-status').textContent = '✗ Please enter your API Secret Token';
-    document.getElementById('settings-status').style.color = 'var(--red)';
-    return;
-  }
   STATE.scriptUrl = v;
-  STATE.apiToken  = t;
   localStorage.setItem('cnr_script_url', v);
-  localStorage.setItem('cnr_api_token',  t);
-  document.getElementById('settings-status').textContent = '✓ Saved — syncing now…';
+  document.getElementById('settings-status').textContent = '✓ URL saved — syncing now…';
   document.getElementById('settings-status').style.color = 'var(--green)';
+  // Hide setup banner if visible
   document.getElementById('setup-banner').classList.remove('show');
-  // Pull profiles from Sheets first — if they exist, use them (don't overwrite)
-  // Only push local profiles if Sheets has none (first-ever setup)
-  try{
-    const pr = await apiCall('getProfiles');
-    if(pr && pr.success && Array.isArray(pr.profiles) && pr.profiles.length > 0){
-      GLOBAL.profiles = pr.profiles;
-      localStorage.setItem('cnr_profiles', JSON.stringify(GLOBAL.profiles));
-    } else {
-      await apiCall('setProfiles', {profiles: GLOBAL.profiles});
-    }
-  } catch(e){}
   await syncAll();
-  document.getElementById('settings-status').textContent = '✓ Saved and sync complete';
+  document.getElementById('settings-status').textContent = '✓ URL saved and sync complete';
 }
 
 async function settingsTestUrl(){
@@ -3438,116 +3120,167 @@ function lockApp(){
 function unlockApp(){
   localStorage.setItem('cnr_unlock_ts', Date.now().toString());
   document.getElementById('login-screen').classList.add('hidden');
-  // Show profile selection instead of going straight to app
-  showProfileScreen();
-}
-
-// ── Profile colours ───────────────────────────────────────────────────────────
-const PROFILE_COLORS = ['#E8C97A','#5DCAA5','#85B7EB','#F59595','#C49FE3','#F5C85A'];
-const PROFILE_EMOJIS = ['🏠','👤','🏡','🌟','💼','🔑','🏢','🌿'];
-
-function currentProfileName(){
-  const p = GLOBAL.profiles.find(p=>p.id===STATE.profileId);
-  return p ? p.name : 'Profile';
-}
-
-// ── Profile screen ────────────────────────────────────────────────────────────
-function showProfileScreen(){
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('profile-screen').classList.add('show');
-  // Always pull latest profiles from Sheets so renames/additions from other devices appear
-  if(STATE.scriptUrl){
-    apiCall('getProfiles').then(res=>{
-      if(res && res.success && Array.isArray(res.profiles) && res.profiles.length > 0){
-        GLOBAL.profiles = res.profiles;
-        localStorage.setItem('cnr_profiles', JSON.stringify(GLOBAL.profiles));
-      }
-      renderProfileScreen();
-    }).catch(()=>renderProfileScreen());
-  } else {
-    renderProfileScreen();
-  }
-}
-
-function renderProfileScreen(){
-  const list = document.getElementById('profile-list');
-  list.innerHTML = GLOBAL.profiles.map(p=>{
-    const color = PROFILE_COLORS[p.colorIdx||0];
-    const initial = (p.name||'?')[0].toUpperCase();
-    // Count total records for this profile across all data keys
-    const totalRecs = DATA_KEYS.reduce((acc,k)=>{
-      const pk = (!p.id||p.id==='default') ? `cnr_${k}` : `cnr_${p.id}_${k}`;
-      const arr = JSON.parse(localStorage.getItem(pk)||'[]');
-      return acc + arr.length;
-    },0);
-    return `
-    <div class="profile-card" onclick="selectProfile('${p.id}')">
-      <div class="profile-avatar" style="background:${color}">${initial}</div>
-      <div style="flex:1;min-width:0">
-        <div class="profile-card-name">${p.name}</div>
-        <div class="profile-card-sub">${totalRecs} record${totalRecs!==1?'s':''}</div>
-      </div>
-      <button class="profile-edit-btn" onclick="event.stopPropagation();openRenameProfile('${p.id}')">✏ Rename</button>
-    </div>`;
-  }).join('');
-}
-
-async function selectProfile(profileId){
-  document.getElementById('profile-screen').classList.remove('show');
-  sessionStorage.setItem('cnr_active_profile', profileId);
-  loadProfileData(profileId);
-  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').style.display='flex';
+  // Render local data immediately — never show blank app
   renderAll();
-  if(STATE.scriptUrl){
-    setTimeout(()=>syncAll(), 300);
+  if(!STATE.scriptUrl){
+    setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),400);
   } else {
-    STATE.syncReady = true;
-    setTimeout(()=>document.getElementById('setup-banner').classList.add('show'), 500);
+    // Background sync after local render
+    setTimeout(()=>syncAll(), 400);
   }
-}
-
-function switchProfile(){
-  // Return to profile screen without logging out
-  showProfileScreen();
-}
-
-// ── Add profile ───────────────────────────────────────────────────────────────
-function showAddProfileDialog(){
-  const name = prompt('Profile name (e.g. "Carlos" or "Maria"):');
-  if(!name || !name.trim()) return;
-  const colorIdx = GLOBAL.profiles.length % PROFILE_COLORS.length;
-  const id = 'p_' + Date.now().toString(36);
-  GLOBAL.profiles.push({id, name: name.trim(), colorIdx});
-  saveProfiles();
-  renderProfileScreen();
-}
-
-// ── Rename profile ────────────────────────────────────────────────────────────
-function openRenameProfile(profileId){
-  const p = GLOBAL.profiles.find(x=>x.id===profileId);
-  if(!p) return;
-  const newName = prompt('Rename profile:', p.name);
-  if(!newName || !newName.trim()) return;
-  p.name = newName.trim();
-  saveProfiles();
-  renderProfileScreen();
-  // Also update header if this is the active profile
-  if(STATE.profileId === profileId) updateProfileBadge();
-}
-
-// ── Profile badge in app header ───────────────────────────────────────────────
-function updateProfileBadge(){
-  const badge = document.getElementById('profile-badge');
-  if(!badge) return;
-  const p = GLOBAL.profiles.find(x=>x.id===STATE.profileId);
-  if(!p) return;
-  const color = PROFILE_COLORS[p.colorIdx||0];
-  badge.textContent = (p.name||'?')[0].toUpperCase();
-  badge.style.background = color;
 }
 
 let failCount = parseInt(localStorage.getItem('cnr_fails')||'0');
 let lockUntil = parseInt(localStorage.getItem('cnr_lock_until')||'0');
+
+// ══════════════════════════════════════════════
+// FACE ID / WEBAUTHN
+// ══════════════════════════════════════════════
+function faceIdSupported(){
+  return window.PublicKeyCredential !== undefined &&
+         typeof navigator.credentials?.create === 'function';
+}
+function hasFaceIdCredential(){
+  return !!localStorage.getItem('cnr_webauthn_cred_id');
+}
+function b64ToUint8(b64){
+  return Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
+}
+function uint8ToB64(arr){
+  return btoa(String.fromCharCode(...new Uint8Array(arr)));
+}
+
+async function registerFaceId(){
+  if(!faceIdSupported()) return false;
+  try{
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const userId    = crypto.getRandomValues(new Uint8Array(16));
+    const hostname  = window.location.hostname || 'localhost';
+    const cred = await navigator.credentials.create({publicKey:{
+      challenge,
+      rp:   {name:'CN Realty', id: hostname},
+      user: {id: userId, name:'cnrealty', displayName:'CN Realty User'},
+      pubKeyCredParams: [{alg:-7, type:'public-key'},{alg:-257, type:'public-key'}],
+      authenticatorSelection:{
+        authenticatorAttachment: 'platform',
+        userVerification: 'required',
+        residentKey: 'preferred',
+      },
+      timeout: 60000,
+    }});
+    localStorage.setItem('cnr_webauthn_cred_id', uint8ToB64(cred.rawId));
+    return true;
+  }catch(e){
+    console.log('FaceID register failed:', e.message);
+    return false;
+  }
+}
+
+async function loginWithFaceId(){
+  const credIdStr = localStorage.getItem('cnr_webauthn_cred_id');
+  if(!credIdStr){ showFaceIdBtn(); return; }
+  document.getElementById('login-error').textContent = '';
+  try{
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const hostname  = window.location.hostname || 'localhost';
+    const assertion = await navigator.credentials.get({publicKey:{
+      challenge,
+      rpId: hostname,
+      allowCredentials:[{
+        id:         b64ToUint8(credIdStr),
+        type:       'public-key',
+        transports: ['internal'],
+      }],
+      userVerification: 'required',
+      timeout: 60000,
+    }});
+    if(assertion){
+      // Biometric passed — unlock directly
+      const ls = document.getElementById('login-screen');
+      ls.style.transition = 'opacity 0.4s';
+      ls.style.opacity    = '0';
+      setTimeout(()=>{ ls.classList.add('hidden'); ls.style.opacity=''; unlockApp(); }, 400);
+    }
+  }catch(e){
+    if(e.name !== 'NotAllowedError'){
+      document.getElementById('login-error').textContent = 'Face ID failed — try password.';
+    }
+  }
+}
+
+function showFaceIdBtn(){
+  const btn = document.getElementById('faceid-login-btn');
+  if(!btn) return;
+  if(faceIdSupported() && hasFaceIdCredential()){
+    btn.style.display = 'block';
+    document.querySelector('#faceid-login-btn .faceid-icon').textContent =
+      window.location.hostname.includes('localhost') ? '🔒' : '🔒';
+    // Auto-trigger Face ID on load if credential exists
+    setTimeout(()=>loginWithFaceId(), 400);
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+// ── Settings toggle ───────────────────────────────────────────────────────────
+function updateFaceIdSettingsUI(){
+  const statusEl = document.getElementById('faceid-status-text');
+  const btnEl    = document.getElementById('faceid-settings-btn');
+  if(!statusEl || !btnEl) return;
+  if(!faceIdSupported()){
+    statusEl.textContent = 'Face ID / biometrics not supported on this browser. Use Safari on iPhone.';
+    btnEl.style.display  = 'none';
+    return;
+  }
+  if(hasFaceIdCredential()){
+    statusEl.textContent = '✓ Face ID is enabled on this device.';
+    btnEl.textContent    = '🗑 Remove Face ID from this device';
+    btnEl.style.borderColor = 'rgba(240,149,149,0.3)';
+    btnEl.style.color       = 'var(--red)';
+    btnEl.style.background  = 'rgba(240,149,149,0.06)';
+  } else {
+    statusEl.textContent = 'Not enabled. Set up Face ID to skip password on this device.';
+    btnEl.textContent    = '🔒 Enable Face ID for this device';
+    btnEl.style.borderColor = 'rgba(133,183,235,0.3)';
+    btnEl.style.color       = '#85B7EB';
+    btnEl.style.background  = 'rgba(133,183,235,0.08)';
+  }
+}
+
+async function toggleFaceId(){
+  const statusEl = document.getElementById('faceid-settings-status');
+  if(hasFaceIdCredential()){
+    localStorage.removeItem('cnr_webauthn_cred_id');
+    statusEl.textContent = '✓ Face ID removed from this device.';
+    statusEl.style.color = 'var(--green)';
+    updateFaceIdSettingsUI();
+  } else {
+    statusEl.textContent = 'Follow the Face ID prompt…';
+    statusEl.style.color = 'var(--muted)';
+    const ok = await registerFaceId();
+    if(ok){
+      statusEl.textContent = '✓ Face ID enabled! It will be used next time you log in.';
+      statusEl.style.color = 'var(--green)';
+    } else {
+      statusEl.textContent = '✗ Face ID setup failed. Make sure you are using Safari.';
+      statusEl.style.color = 'var(--red)';
+    }
+    updateFaceIdSettingsUI();
+  }
+}
+
+// ── Offer Face ID after first password login ──────────────────────────────────
+async function offerFaceIdSetup(){
+  if(!faceIdSupported() || hasFaceIdCredential()) return;
+  // Small delay so the app is visible first
+  await new Promise(r=>setTimeout(r, 800));
+  const accept = confirm('Would you like to enable Face ID for future logins on this device?\n\n(You can also set this up later in Settings)');
+  if(!accept) return;
+  const ok = await registerFaceId();
+  if(ok) toast('✓ Face ID enabled for this device');
+  else   toast('Face ID setup failed — try again in Settings');
+}
 
 function submitLogin(){
   const now = Date.now();
@@ -3563,10 +3296,11 @@ function submitLogin(){
     localStorage.removeItem('cnr_lock_until');
     document.getElementById('login-error').textContent='';
     document.getElementById('login-attempts').textContent='';
+    // Fade out login
     const ls=document.getElementById('login-screen');
     ls.style.transition='opacity 0.4s';
     ls.style.opacity='0';
-    setTimeout(()=>{ ls.classList.add('hidden'); ls.style.opacity=''; unlockApp(); },400);
+    setTimeout(()=>{ ls.classList.add('hidden'); ls.style.opacity=''; unlockApp(); offerFaceIdSetup(); },400);
   } else {
     failCount++;
     localStorage.setItem('cnr_fails', failCount);
@@ -3601,6 +3335,9 @@ function toggleEye(){
 // INIT
 // ══════════════════════════════════════════════
 window.addEventListener('load',()=>{
+  // Logo is embedded as base64 — no file loading needed
+
+  // Hide loading
   setTimeout(()=>{
     const l=document.getElementById('loading');
     l.style.transition='opacity 0.4s';
@@ -3608,26 +3345,21 @@ window.addEventListener('load',()=>{
     setTimeout(()=>l.style.display='none',400);
   },700);
 
+  // Check session
   if(isUnlocked()){
     document.getElementById('login-screen').classList.add('hidden');
-    // Restore profile from session (so refresh doesn't force re-select)
-    const savedProfile = sessionStorage.getItem('cnr_active_profile');
-    if(savedProfile && GLOBAL.profiles.find(p=>p.id===savedProfile)){
-      loadProfileData(savedProfile);
-      document.getElementById('app').style.display='flex';
-      renderAll();
-      if(STATE.scriptUrl){
-        setTimeout(()=>syncAll(), 300);
-      } else {
-        STATE.syncReady = true;
-        setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),500);
-      }
+    document.getElementById('app').style.display='flex';
+    // Always render local data first so app is usable immediately
+    renderAll();
+    if(STATE.scriptUrl){
+      // Then sync in background — won't block UI
+      setTimeout(()=>syncAll(), 300);
     } else {
-      // Session exists but no profile chosen yet — show profile screen
-      showProfileScreen();
+      setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),500);
     }
   } else {
     document.getElementById('app').style.display='none';
+    showFaceIdBtn();
     setTimeout(()=>document.getElementById('login-input').focus(), 800);
   }
 });
