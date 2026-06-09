@@ -1039,7 +1039,9 @@ function clearDirty(){localStorage.removeItem(storeKey('dirty'))}
 function getDirty(){return JSON.parse(localStorage.getItem(storeKey('dirty'))||'[]')}
 
 function loadProfileData(profileId){
-  STATE.profileId = profileId;
+  // Mark the PREVIOUS profile's sync as stale so any in-flight
+  // requests know to discard their results (prevents cross-profile contamination)
+  STATE.profileId  = profileId;
   STATE.syncReady  = false;
   const pk = k=>(!profileId||profileId==='default')?`cnr_${k}`:`cnr_${profileId}_${k}`;
   DATA_KEYS.forEach(k=>{ STATE[k] = JSON.parse(localStorage.getItem(pk(k))||'[]'); });
@@ -1172,9 +1174,11 @@ async function apiCall(action, payload={}){
 async function syncAll(){
   if(!STATE.scriptUrl){ showSetupIfNeeded(); return; }
   setSyncStatus('syncing');
-  const pid = STATE.profileId;
+  const pid = STATE.profileId; // capture NOW — if profile switches mid-flight we abort
   try{
     const res = await apiCall('getAll', {profileId: pid});
+    // If profile switched while request was in flight, discard results entirely
+    if(STATE.profileId !== pid){ setSyncStatus('ok'); return; }
     if(res && res.success){
       const dirty = getDirty();
       const pushPromises = [];
@@ -1183,6 +1187,8 @@ async function syncAll(){
         if(dirty.includes(k)){
           pushPromises.push(apiCall('setAll',{profileId:pid, sheet:k, rows:STATE[k]}));
         } else if(res[k].length > 0){
+          // Only write to STATE if still on the same profile
+          if(STATE.profileId !== pid) break;
           STATE[k] = res[k];
           save(k);
           if(k==='incomes') normaliseIncomes();
@@ -1191,6 +1197,8 @@ async function syncAll(){
         }
       }
       if(pushPromises.length > 0) await Promise.all(pushPromises);
+      // Final profile check before marking sync complete
+      if(STATE.profileId !== pid){ setSyncStatus('ok'); return; }
       clearDirty();
       STATE.syncReady = true;
       renderAll();
@@ -1215,8 +1223,10 @@ async function pushRow(sheet, row){
   };
   const key = SHEET_TO_KEY[sheet] || sheet;
   const rows = STATE[key] || [];
+  // Capture profileId NOW — do not use STATE.profileId in the async callback
+  const pid  = STATE.profileId;
   setSyncStatus('syncing');
-  apiCall('setAll', {profileId: STATE.profileId, sheet:key, rows}).then(res=>{
+  apiCall('setAll', {profileId: pid, sheet:key, rows}).then(res=>{
     if(res && res.success) setSyncStatus('ok');
     else{ console.warn('pushRow failed:', res); setSyncStatus('error'); }
   }).catch(e=>{ console.warn('pushRow error:', e); setSyncStatus('error'); });
@@ -3125,11 +3135,13 @@ function deleteRecord(type, id){
   STATE[key] = STATE[key].filter(r=>String(r.id)!==String(id));
   save(key);
   markDirty(key);
+  const pid = STATE.profileId; // capture before async
   if(STATE.scriptUrl){
-    apiCall('setAll', {profileId: STATE.profileId, sheet:key, rows: STATE[key]}).then(res=>{
+    apiCall('setAll', {profileId: pid, sheet:key, rows: STATE[key]}).then(res=>{
+      if(STATE.profileId !== pid) return; // profile switched — discard
       if(res && res.success) setSyncStatus('ok');
       else setSyncStatus('error');
-    }).catch(()=>setSyncStatus('error'));
+    }).catch(()=>{ if(STATE.profileId===pid) setSyncStatus('error'); });
   }
   renderAll();
   toast('✓ Deleted successfully');
