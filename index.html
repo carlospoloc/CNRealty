@@ -1201,6 +1201,7 @@ async function syncAll(){
       if(STATE.profileId !== pid){ setSyncStatus('ok'); return; }
       clearDirty();
       STATE.syncReady = true;
+      syncPasswordHash(); // pull/push password hash in background
       renderAll();
       setSyncStatus('ok');
     } else {
@@ -3247,12 +3248,51 @@ async function settingsTestUrl(){
   }
 }
 
-function changePassword(){
+// ══════════════════════════════════════════════
+// CENTRALIZED PASSWORD  (SHA-256 hash in Sheets)
+// ══════════════════════════════════════════════
+const APP_PASSWORD_DEFAULT = 'CoronadoNova2024';
+
+// SHA-256 via built-in Web Crypto — no library needed
+async function hashPassword(pwd){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// Stored hash: prefer Sheets-synced cache, fall back to hashing the legacy plaintext
+async function getStoredHash(){
+  const cached = localStorage.getItem('cnr_pw_hash');
+  if(cached) return cached;
+  const legacy = localStorage.getItem('cnr_custom_pw') || APP_PASSWORD_DEFAULT;
+  return hashPassword(legacy);
+}
+
+// Pull latest hash from Sheets and cache locally (called after every successful sync)
+async function syncPasswordHash(){
+  if(!STATE.scriptUrl || !STATE.apiToken) return;
+  try{
+    const res = await apiCall('getConfig', {key:'passwordHash'});
+    if(res && res.success && res.value){
+      localStorage.setItem('cnr_pw_hash', res.value);
+    } else if(res && res.success && !res.value){
+      // Nothing in Sheets yet — push current hash to initialise
+      const h = await getStoredHash();
+      await apiCall('setConfig', {key:'passwordHash', value: h});
+      localStorage.setItem('cnr_pw_hash', h);
+    }
+  } catch(e){}
+}
+
+async function changePassword(){
   const current  = document.getElementById('pw-current').value;
   const newPw    = document.getElementById('pw-new').value;
   const confirm  = document.getElementById('pw-confirm').value;
   const statusEl = document.getElementById('pw-status');
-  if(current !== APP_PASSWORD){
+
+  const currentHash = await hashPassword(current);
+  const storedHash  = await getStoredHash();
+
+  if(currentHash !== storedHash){
     statusEl.textContent = '✗ Current password is incorrect';
     statusEl.style.color = 'var(--red)'; return;
   }
@@ -3264,18 +3304,101 @@ function changePassword(){
     statusEl.textContent = '✗ Passwords do not match';
     statusEl.style.color = 'var(--red)'; return;
   }
-  // Store new password in localStorage so it persists
-  localStorage.setItem('cnr_custom_pw', newPw);
-  // Reload APP_PASSWORD value
-  window._customPw = newPw;
-  statusEl.textContent = '✓ Password updated successfully';
-  statusEl.style.color = 'var(--green)';
+
+  statusEl.textContent = 'Updating…';
+  statusEl.style.color = 'var(--muted)';
+
+  const newHash = await hashPassword(newPw);
+  localStorage.setItem('cnr_pw_hash', newHash);
+  localStorage.removeItem('cnr_custom_pw'); // remove legacy plaintext
+
+  if(STATE.scriptUrl && STATE.apiToken){
+    const res = await apiCall('setConfig', {key:'passwordHash', value: newHash});
+    if(res && res.success){
+      statusEl.textContent = '✓ Password updated on all devices';
+      statusEl.style.color = 'var(--green)';
+    } else {
+      statusEl.textContent = '✓ Password updated locally — sync failed, will retry';
+      statusEl.style.color = 'var(--amber)';
+    }
+  } else {
+    statusEl.textContent = '✓ Password updated locally (connect Sheets to sync all devices)';
+    statusEl.style.color = 'var(--amber)';
+  }
   document.getElementById('pw-current').value = '';
-  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-new').value     = '';
   document.getElementById('pw-confirm').value = '';
 }
 
-// ── Custom toggle helper — replaces native checkboxes ────────────────────────
+// ── Session ────────────────────────────────────────────────────────────────────
+const SESSION_HOURS = 8;
+
+function isUnlocked(){
+  const t = parseInt(localStorage.getItem('cnr_unlock_ts')||'0');
+  return Date.now() - t < SESSION_HOURS * 3600000;
+}
+
+function lockApp(){
+  localStorage.removeItem('cnr_unlock_ts');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-input').value='';
+  document.getElementById('login-error').textContent='';
+  document.getElementById('login-attempts').textContent='';
+}
+
+function unlockApp(){
+  localStorage.setItem('cnr_unlock_ts', Date.now().toString());
+  document.getElementById('login-screen').classList.add('hidden');
+  showProfileScreen();
+}
+
+let failCount = parseInt(localStorage.getItem('cnr_fails')||'0');
+let lockUntil = parseInt(localStorage.getItem('cnr_lock_until')||'0');
+
+async function submitLogin(){
+  const now = Date.now();
+  if(now < lockUntil){
+    const secs = Math.ceil((lockUntil-now)/1000);
+    document.getElementById('login-error').textContent = 'Too many attempts. Wait '+secs+'s.';
+    return;
+  }
+  const val         = document.getElementById('login-input').value;
+  const enteredHash = await hashPassword(val);
+  const storedHash  = await getStoredHash();
+
+  if(enteredHash === storedHash){
+    failCount=0;
+    localStorage.setItem('cnr_fails','0');
+    localStorage.removeItem('cnr_lock_until');
+    localStorage.removeItem('cnr_custom_pw'); // clean up legacy plaintext
+    document.getElementById('login-error').textContent='';
+    document.getElementById('login-attempts').textContent='';
+    const ls=document.getElementById('login-screen');
+    ls.style.transition='opacity 0.4s';
+    ls.style.opacity='0';
+    setTimeout(()=>{ ls.classList.add('hidden'); ls.style.opacity=''; unlockApp(); offerFaceIdSetup(); },400);
+  } else {
+    failCount++;
+    localStorage.setItem('cnr_fails', failCount);
+    const wrap = document.getElementById('login-input').parentElement;
+    wrap.classList.remove('shake');
+    void wrap.offsetWidth;
+    wrap.classList.add('shake');
+    document.getElementById('login-input').value='';
+    if(failCount >= 5){
+      lockUntil = Date.now() + 30000;
+      localStorage.setItem('cnr_lock_until', lockUntil);
+      document.getElementById('login-error').textContent = 'Too many attempts. Locked for 30s.';
+      document.getElementById('login-attempts').textContent='';
+      failCount=0; localStorage.setItem('cnr_fails','0');
+    } else {
+      const rem = 5 - failCount;
+      document.getElementById('login-error').textContent = 'Incorrect password.';
+      document.getElementById('login-attempts').textContent = rem + ' attempt'+(rem===1?'':'s')+' remaining';
+    }
+  }
+}
 function cnrToggle(toggleEl){
   const wrap = toggleEl.closest('.cnr-toggle-wrap');
   const isOn  = toggleEl.classList.toggle('on');
@@ -3302,41 +3425,20 @@ function buildToggleField(id, label, subLabel, isChecked){
   </div>`;
 }
 // ══════════════════════════════════════════════
-// PASSWORD PROTECTION
+// PASSWORD PROTECTION — legacy block removed, see new centralized version above
 // ══════════════════════════════════════════════
-// To change the password, edit the line below:
-// Password — reads custom password from localStorage if set (via Settings screen)
-const APP_PASSWORD_DEFAULT = 'CoronadoNova2024';
-// Use a getter pattern so submitLogin always reads the latest value
-function getAppPassword(){
-  return localStorage.getItem('cnr_custom_pw') || APP_PASSWORD_DEFAULT;
+
+// ── Session ── (SESSION_HOURS, isUnlocked, lockApp, unlockApp defined above)
+
+// failCount / lockUntil already declared above
+// submitLogin already declared above (async, hash-based)
+
+function toggleEye(){
+  const inp=document.getElementById('login-input');
+  const btn=document.getElementById('eye-btn');
+  if(inp.type==='password'){inp.type='text';btn.textContent='🙈';}
+  else{inp.type='password';btn.textContent='👁';}
 }
-
-// Session stays unlocked for 8 hours
-const SESSION_HOURS = 8;
-
-function isUnlocked(){
-  const t = parseInt(localStorage.getItem('cnr_unlock_ts')||'0');
-  return Date.now() - t < SESSION_HOURS * 3600000;
-}
-
-function lockApp(){
-  localStorage.removeItem('cnr_unlock_ts');
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('app').style.display='none';
-  document.getElementById('login-input').value='';
-  document.getElementById('login-error').textContent='';
-  document.getElementById('login-attempts').textContent='';
-}
-
-function unlockApp(){
-  localStorage.setItem('cnr_unlock_ts', Date.now().toString());
-  document.getElementById('login-screen').classList.add('hidden');
-  showProfileScreen();
-}
-
-let failCount = parseInt(localStorage.getItem('cnr_fails')||'0');
-let lockUntil = parseInt(localStorage.getItem('cnr_lock_until')||'0');
 
 // ══════════════════════════════════════════════
 // FACE ID / WEBAUTHN
@@ -3484,48 +3586,6 @@ async function offerFaceIdSetup(){
   const ok = await registerFaceId();
   if(ok) toast('✓ Face ID enabled for this device');
   else   toast('Face ID setup failed — try again in Settings');
-}
-
-function submitLogin(){
-  const now = Date.now();
-  if(now < lockUntil){
-    const secs = Math.ceil((lockUntil-now)/1000);
-    document.getElementById('login-error').textContent = 'Too many attempts. Wait '+secs+'s.';
-    return;
-  }
-  const val = document.getElementById('login-input').value;
-  if(val === getAppPassword()){
-    failCount=0;
-    localStorage.setItem('cnr_fails','0');
-    localStorage.removeItem('cnr_lock_until');
-    document.getElementById('login-error').textContent='';
-    document.getElementById('login-attempts').textContent='';
-    // Fade out login
-    const ls=document.getElementById('login-screen');
-    ls.style.transition='opacity 0.4s';
-    ls.style.opacity='0';
-    setTimeout(()=>{ ls.classList.add('hidden'); ls.style.opacity=''; unlockApp(); offerFaceIdSetup(); },400);
-  } else {
-    failCount++;
-    localStorage.setItem('cnr_fails', failCount);
-    const wrap = document.getElementById('login-input').parentElement;
-    wrap.classList.remove('shake');
-    void wrap.offsetWidth;
-    wrap.classList.add('shake');
-    document.getElementById('login-input').value='';
-    if(failCount >= 5){
-      const wait = 30000;
-      lockUntil = Date.now() + wait;
-      localStorage.setItem('cnr_lock_until', lockUntil);
-      document.getElementById('login-error').textContent = 'Too many attempts. Locked for 30s.';
-      document.getElementById('login-attempts').textContent='';
-      failCount=0; localStorage.setItem('cnr_fails','0');
-    } else {
-      const rem = 5 - failCount;
-      document.getElementById('login-error').textContent = 'Incorrect password.';
-      document.getElementById('login-attempts').textContent = rem + ' attempt'+(rem===1?'':'s')+' remaining';
-    }
-  }
 }
 
 function toggleEye(){
