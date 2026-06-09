@@ -1173,11 +1173,16 @@ async function apiCall(action, payload={}){
 
 async function syncAll(){
   if(!STATE.scriptUrl){ showSetupIfNeeded(); return; }
+  // Don't even try if token is missing — just tell the user
+  if(!STATE.apiToken){
+    setSyncStatus('error');
+    toast('⚠ API token missing — open Settings to enter it');
+    return;
+  }
   setSyncStatus('syncing');
-  const pid = STATE.profileId; // capture NOW — if profile switches mid-flight we abort
+  const pid = STATE.profileId;
   try{
     const res = await apiCall('getAll', {profileId: pid});
-    // If profile switched while request was in flight, discard results entirely
     if(STATE.profileId !== pid){ setSyncStatus('ok'); return; }
     if(res && res.success){
       const dirty = getDirty();
@@ -1187,7 +1192,6 @@ async function syncAll(){
         if(dirty.includes(k)){
           pushPromises.push(apiCall('setAll',{profileId:pid, sheet:k, rows:STATE[k]}));
         } else if(res[k].length > 0){
-          // Only write to STATE if still on the same profile
           if(STATE.profileId !== pid) break;
           STATE[k] = res[k];
           save(k);
@@ -1197,19 +1201,23 @@ async function syncAll(){
         }
       }
       if(pushPromises.length > 0) await Promise.all(pushPromises);
-      // Final profile check before marking sync complete
       if(STATE.profileId !== pid){ setSyncStatus('ok'); return; }
       clearDirty();
       STATE.syncReady = true;
+      syncPasswordHash(); // pull latest password hash in background
       renderAll();
       setSyncStatus('ok');
+    } else if(res && res.code === 401){
+      setSyncStatus('error');
+      toast('⚠ Unauthorized — check your API token in Settings');
+    } else if(res === null){
+      setSyncStatus('error');
+      toast('⚠ Could not reach Google Sheets — check your connection');
     } else {
       setSyncStatus('error');
-      renderAll();
     }
   } catch(e){
     setSyncStatus('error');
-    renderAll();
   }
 }
 
@@ -2539,16 +2547,36 @@ function openModal(type){
     const opts=typeof f.options==='function'?f.options():f.options;
     if(f.type==='checkbox-forrent')
       return buildToggleField('mf-forRent','🏠 For Rent','Property is available for rent',true);
-    if(f.type==='select')
-      return `<div class="field"><label>${f.label}</label><select id="mf-${f.id}">${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+    if(f.type==='select'){
+      const onchange = (type==='tenant' && f.id==='property')
+        ? ` onchange="autoFillTenantRent(this.value)"`
+        : '';
+      return `<div class="field"><label>${f.label}</label><select id="mf-${f.id}"${onchange}>${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+    }
     if(f.type==='textarea')
       return `<div class="field"><label>${f.label}</label><textarea id="mf-${f.id}" placeholder="${f.placeholder||''}"></textarea></div>`;
+    if(f.type==='date' || f.type==='datetime-local')
+      return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}"/></div>`;
     return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}"/></div>`;
   }).join('');
-  // default date to today
-  const dateField=document.getElementById('mf-date');
-  if(dateField) dateField.value=new Date().toISOString().split('T')[0];
+  // Set date defaults programmatically
+  const todayStr = new Date().toISOString().split('T')[0];
+  fields.filter(f=>f.type==='date').forEach(f=>{
+    const el=document.getElementById('mf-'+f.id);
+    if(el) el.value=todayStr;
+  });
   document.getElementById('modal-overlay').classList.add('show');
+}
+
+function autoFillTenantRent(selectedPropertyName){
+  const rentField = document.getElementById('mf-rent');
+  if(!rentField) return;
+  // Only auto-fill if rent field is currently empty
+  if(rentField.value && rentField.value.trim() !== '') return;
+  const prop = STATE.properties.find(p => p.name === selectedPropertyName);
+  if(prop && prop.rent && Number(prop.rent) > 0){
+    rentField.value = prop.rent;
+  }
 }
 
 function saveModal(){
@@ -3306,10 +3334,91 @@ function buildToggleField(id, label, subLabel, isChecked){
 // ══════════════════════════════════════════════
 // To change the password, edit the line below:
 // Password — reads custom password from localStorage if set (via Settings screen)
+// ══════════════════════════════════════════════
+// CENTRALIZED PASSWORD (SHA-256 hash in Sheets)
+// ══════════════════════════════════════════════
 const APP_PASSWORD_DEFAULT = 'CoronadoNova2024';
-// Use a getter pattern so submitLogin always reads the latest value
-function getAppPassword(){
-  return localStorage.getItem('cnr_custom_pw') || APP_PASSWORD_DEFAULT;
+
+// SHA-256 hash using Web Crypto API (built into all modern browsers)
+async function hashPassword(pwd){
+  const enc  = new TextEncoder();
+  const buf  = await crypto.subtle.digest('SHA-256', enc.encode(pwd));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// Get stored hash: prefer Sheets-synced cache, fall back to legacy plaintext
+async function getStoredHash(){
+  // First choice: hash cached from Sheets
+  const cached = localStorage.getItem('cnr_pw_hash');
+  if(cached) return cached;
+  // Fallback: hash the legacy local password so first login still works
+  const legacy = localStorage.getItem('cnr_custom_pw') || APP_PASSWORD_DEFAULT;
+  return await hashPassword(legacy);
+}
+
+// Pull latest hash from Sheets and cache it locally
+async function syncPasswordHash(){
+  if(!STATE.scriptUrl || !STATE.apiToken) return;
+  try{
+    const res = await apiCall('getConfig', {key:'passwordHash'});
+    if(res && res.success && res.value){
+      localStorage.setItem('cnr_pw_hash', res.value);
+    } else if(res && res.success && !res.value){
+      // No hash in Sheets yet — push the current one to initialise
+      const currentHash = await getStoredHash();
+      await apiCall('setConfig', {key:'passwordHash', value: currentHash});
+      localStorage.setItem('cnr_pw_hash', currentHash);
+    }
+  } catch(e){}
+}
+
+async function changePassword(){
+  const currentVal = document.getElementById('pw-current').value;
+  const newPw      = document.getElementById('pw-new').value;
+  const confirm    = document.getElementById('pw-confirm').value;
+  const statusEl   = document.getElementById('pw-status');
+
+  const currentHash = await hashPassword(currentVal);
+  const storedHash  = await getStoredHash();
+
+  if(currentHash !== storedHash){
+    statusEl.textContent = '✗ Current password is incorrect';
+    statusEl.style.color = 'var(--red)'; return;
+  }
+  if(newPw.length < 6){
+    statusEl.textContent = '✗ New password must be at least 6 characters';
+    statusEl.style.color = 'var(--red)'; return;
+  }
+  if(newPw !== confirm){
+    statusEl.textContent = '✗ Passwords do not match';
+    statusEl.style.color = 'var(--red)'; return;
+  }
+
+  statusEl.textContent = 'Updating…';
+  statusEl.style.color = 'var(--muted)';
+
+  const newHash = await hashPassword(newPw);
+  // Save locally first
+  localStorage.setItem('cnr_pw_hash', newHash);
+  localStorage.removeItem('cnr_custom_pw'); // remove legacy plaintext
+
+  // Push to Sheets so all devices get it immediately
+  if(STATE.scriptUrl && STATE.apiToken){
+    const res = await apiCall('setConfig', {key:'passwordHash', value: newHash});
+    if(res && res.success){
+      statusEl.textContent = '✓ Password updated on all devices';
+      statusEl.style.color = 'var(--green)';
+    } else {
+      statusEl.textContent = '✓ Password updated locally (sync failed — will retry)';
+      statusEl.style.color = 'var(--amber)';
+    }
+  } else {
+    statusEl.textContent = '✓ Password updated (connect to Sheets to sync to other devices)';
+    statusEl.style.color = 'var(--amber)';
+  }
+  document.getElementById('pw-current').value = '';
+  document.getElementById('pw-new').value     = '';
+  document.getElementById('pw-confirm').value = '';
 }
 
 // Session stays unlocked for 8 hours
@@ -3486,7 +3595,7 @@ async function offerFaceIdSetup(){
   else   toast('Face ID setup failed — try again in Settings');
 }
 
-function submitLogin(){
+async function submitLogin(){
   const now = Date.now();
   if(now < lockUntil){
     const secs = Math.ceil((lockUntil-now)/1000);
@@ -3494,13 +3603,16 @@ function submitLogin(){
     return;
   }
   const val = document.getElementById('login-input').value;
-  if(val === getAppPassword()){
+  const enteredHash = await hashPassword(val);
+  const storedHash  = await getStoredHash();
+
+  if(enteredHash === storedHash){
     failCount=0;
     localStorage.setItem('cnr_fails','0');
     localStorage.removeItem('cnr_lock_until');
+    localStorage.removeItem('cnr_custom_pw'); // remove legacy plaintext if present
     document.getElementById('login-error').textContent='';
     document.getElementById('login-attempts').textContent='';
-    // Fade out login
     const ls=document.getElementById('login-screen');
     ls.style.transition='opacity 0.4s';
     ls.style.opacity='0';
@@ -3514,8 +3626,7 @@ function submitLogin(){
     wrap.classList.add('shake');
     document.getElementById('login-input').value='';
     if(failCount >= 5){
-      const wait = 30000;
-      lockUntil = Date.now() + wait;
+      lockUntil = Date.now() + 30000;
       localStorage.setItem('cnr_lock_until', lockUntil);
       document.getElementById('login-error').textContent = 'Too many attempts. Locked for 30s.';
       document.getElementById('login-attempts').textContent='';
@@ -3553,8 +3664,16 @@ window.addEventListener('load',()=>{
       loadProfileData(savedProfile);
       document.getElementById('app').style.display='flex';
       renderAll();
-      if(STATE.scriptUrl){ setTimeout(()=>syncAll(),300); }
-      else { STATE.syncReady=true; setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),500); }
+      if(STATE.scriptUrl && !STATE.apiToken){
+        // URL saved but token missing — guide user to settings
+        setTimeout(()=>toast('⚠ API token missing — open ⚙ Settings to enter it'), 800);
+        STATE.syncReady = true;
+      } else if(STATE.scriptUrl){
+        setTimeout(()=>syncAll(),300);
+      } else {
+        STATE.syncReady = true;
+        setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),500);
+      }
     } else {
       showProfileScreen();
     }
