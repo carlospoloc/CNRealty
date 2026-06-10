@@ -2180,6 +2180,18 @@ function convertLeadToTenant(leadId){
     <input type="hidden" id="mf-convertLeadId" value="${leadId}"/>
   `;
   currentModal = 'convertLead';
+  // Auto-fill rent from property and wire change handler
+  const propSel=document.getElementById('mf-property');
+  const rentInp=document.getElementById('mf-rent');
+  if(propSel && rentInp){
+    const applyRent=()=>{
+      const prop=STATE.properties.find(p=>p.name===propSel.value);
+      if(prop && prop.rent){ rentInp.value=prop.rent; }
+      else { rentInp.value=''; }
+    };
+    propSel.addEventListener('change', applyRent);
+    applyRent(); // fill on open
+  }
   document.getElementById('modal-overlay').classList.add('show');
 }
 
@@ -2549,6 +2561,20 @@ function openModal(type){
   // default date to today
   const dateField=document.getElementById('mf-date');
   if(dateField) dateField.value=new Date().toISOString().split('T')[0];
+  // Auto-fill rent from selected property (tenant Add modal)
+  if(type==='tenant'){
+    const propSel=document.getElementById('mf-property');
+    const rentInp=document.getElementById('mf-rent');
+    if(propSel && rentInp){
+      const applyRent=()=>{
+        const prop=STATE.properties.find(p=>p.name===propSel.value);
+        if(prop && prop.rent){ rentInp.value=prop.rent; }
+        else { rentInp.value=''; }
+      };
+      propSel.addEventListener('change', applyRent);
+      applyRent(); // fill immediately on open
+    }
+  }
   document.getElementById('modal-overlay').classList.add('show');
 }
 
@@ -3060,6 +3086,17 @@ function openEditModal(type, id){
     return `<div class="field"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}" value="${safeVal}"/></div>`;
   }).join('');
 
+  // Auto-fill rent when property changes (tenant Edit modal)
+  if(type==='tenant'){
+    const propSel=document.getElementById('mf-property');
+    const rentInp=document.getElementById('mf-rent');
+    if(propSel && rentInp){
+      propSel.addEventListener('change',()=>{
+        const prop=STATE.properties.find(p=>p.name===propSel.value);
+        if(prop && prop.rent){ rentInp.value=prop.rent; }
+      });
+    }
+  }
   // Set currentModal so saveModal routes correctly
   currentModal = 'editRecord';
   document.getElementById('modal-overlay').classList.add('show');
