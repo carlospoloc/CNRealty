@@ -1083,13 +1083,20 @@ function renderProfileScreen(){
       const pk=(!p.id||p.id==='default')?`cnr_${k}`:`cnr_${p.id}_${k}`;
       return acc+(JSON.parse(localStorage.getItem(pk)||'[]')).length;
     },0);
-    return `<div onclick="selectProfile('${p.id}')" style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--navy2);border:0.5px solid var(--border2);border-radius:14px;cursor:pointer;width:100%;max-width:340px;box-sizing:border-box">
-      <div style="width:44px;height:44px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--navy);flex-shrink:0">${initial}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-family:'Cinzel',serif;font-size:15px;color:var(--text)">${p.name}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">${totalRecs} record${totalRecs!==1?'s':''}</div>
+    return `<div style="display:flex;flex-direction:column;gap:0;background:var(--navy2);border:0.5px solid var(--border2);border-radius:14px;width:100%;max-width:340px;box-sizing:border-box;overflow:hidden">
+      <div onclick="selectProfile('${p.id}')" style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer">
+        <div style="width:44px;height:44px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--navy);flex-shrink:0">${initial}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:'Cinzel',serif;font-size:15px;color:var(--text)">${p.name}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${totalRecs} record${totalRecs!==1?'s':''} locally</div>
+        </div>
+        <button onclick="event.stopPropagation();openRenameProfile('${p.id}')" style="flex-shrink:0;background:transparent;border:0.5px solid var(--border2);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);cursor:pointer">✏ Rename</button>
       </div>
-      <button onclick="event.stopPropagation();openRenameProfile('${p.id}')" style="flex-shrink:0;background:transparent;border:0.5px solid var(--border2);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);cursor:pointer">✏ Rename</button>
+      <div style="border-top:0.5px solid var(--border2);padding:8px 12px;display:flex;justify-content:flex-end">
+        <button onclick="event.stopPropagation();clearLocalAndSync('${p.id}','${(p.name||'').replace(/'/g,"&#39;")}')" style="background:rgba(240,149,149,0.08);border:0.5px solid rgba(240,149,149,0.3);border-radius:8px;padding:5px 12px;font-size:11px;color:var(--red);cursor:pointer;display:flex;align-items:center;gap:5px">
+          🗑 Clear local data &amp; re-sync
+        </button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1125,6 +1132,82 @@ function openRenameProfile(profileId){
   saveProfiles();
   renderProfileScreen();
   if(STATE.profileId===profileId) updateProfileBadge();
+}
+
+async function clearLocalAndSync(profileId, profileName){
+  if(!STATE.scriptUrl){
+    alert('No Google Sheets URL configured. Connect to Sheets first in Settings.');
+    return;
+  }
+  const confirmed = confirm(`Clear ALL local data for "${profileName}" and reload from Google Sheets?\n\nThis removes only local cached data — your Sheets data is safe.`);
+  if(!confirmed) return;
+
+  // Wipe every local storage key for this profile
+  DATA_KEYS.forEach(k=>{
+    const key = (!profileId||profileId==='default') ? `cnr_${k}` : `cnr_${profileId}_${k}`;
+    localStorage.removeItem(key);
+  });
+
+  // If this is the active profile, reset STATE data arrays too
+  if(STATE.profileId === profileId){
+    DATA_KEYS.forEach(k=>{ STATE[k]=[]; });
+    STATE.syncReady = false;
+  }
+
+  // Show the profile screen with a status message, then enter the profile and sync
+  const statusEl = document.createElement('div');
+  statusEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(13,27,42,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:14px';
+  statusEl.innerHTML = `
+    <div style="font-size:28px">🔄</div>
+    <div style="font-family:'Cinzel',serif;font-size:15px;color:var(--gold2)">Clearing local data…</div>
+    <div id="clear-sync-status" style="font-size:12px;color:var(--muted)">Connecting to Google Sheets</div>`;
+  document.body.appendChild(statusEl);
+
+  const statusMsg = id => {
+    const el = document.getElementById('clear-sync-status');
+    if(el) el.textContent = id;
+  };
+
+  try {
+    statusMsg('Fetching data from Google Sheets…');
+    const res = await apiCall('getAll', {profileId});
+    if(!res || !res.success) throw new Error(res?.error || 'Fetch failed');
+
+    statusMsg('Loading records…');
+    // Activate the profile
+    sessionStorage.setItem('cnr_active_profile', profileId);
+    loadProfileData(profileId); // reload from (now empty) localStorage first
+
+    // Overwrite STATE with fresh data from Sheets
+    DATA_KEYS.forEach(k=>{
+      if(res[k] && Array.isArray(res[k])){
+        STATE[k] = res[k];
+        save(k);
+      }
+    });
+
+    normaliseIncomes();
+    normaliseExpenses();
+    STATE.syncReady = true;
+    ensureMonthlyHOA();
+
+    statusMsg('Done! ✓');
+    document.body.removeChild(statusEl);
+
+    // Enter the app
+    document.getElementById('profile-screen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    renderAll();
+    setSyncStatus('ok');
+    toast(`"${profileName}" reloaded from Google Sheets`);
+
+  } catch(err){
+    statusMsg('Error: ' + err.message);
+    setTimeout(()=>{
+      document.body.removeChild(statusEl);
+      toast('Sync failed — check your connection and try again');
+    }, 2500);
+  }
 }
 
 const AVATARCOLORS = [
