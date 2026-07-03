@@ -513,6 +513,7 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
     <div style="display:flex;gap:7px;align-items:center">
       <button onclick="switchProfile()" id="profile-badge" title="Switch Profile" style="width:30px;height:30px;border-radius:50%;background:var(--gold2);color:var(--navy);font-size:13px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">?</button>
       <button class="sync-btn" onclick="syncAll()"><span class="sync-icon">↻</span> Sync</button>
+      <button id="privacy-toggle-btn" onclick="togglePrivacyMode()" title="Hide amounts" style="width:30px;height:30px;border-radius:8px;background:transparent;border:0.5px solid var(--border2);color:var(--gold2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">👁</button>
       <button class="sync-btn" onclick="openSettings()" title="Settings" style="padding:4px 8px;font-size:15px;">⚙</button>
     </div>
   </div>
@@ -1008,7 +1009,22 @@ const GLOBAL = {
   scriptUrl: localStorage.getItem('cnr_script_url') || '',
   apiToken:  localStorage.getItem('cnr_api_token')  || '',
   profiles:  JSON.parse(localStorage.getItem('cnr_profiles') || 'null'),
+  privacyMode: localStorage.getItem('cnr_privacy_mode') === '1',
 };
+
+// ── Privacy mode: hide/show confidential amounts across the app ──────────────
+function togglePrivacyMode(){
+  GLOBAL.privacyMode = !GLOBAL.privacyMode;
+  localStorage.setItem('cnr_privacy_mode', GLOBAL.privacyMode ? '1' : '0');
+  updatePrivacyToggleIcon();
+  if(typeof renderAll === 'function') renderAll();
+}
+function updatePrivacyToggleIcon(){
+  const btn = document.getElementById('privacy-toggle-btn');
+  if(!btn) return;
+  btn.textContent = GLOBAL.privacyMode ? '🙈' : '👁';
+  btn.title = GLOBAL.privacyMode ? 'Show amounts' : 'Hide amounts';
+}
 
 // ── Active session state (profile-specific) ───────────────────────────────────
 const STATE = {
@@ -1106,6 +1122,7 @@ async function selectProfile(profileId){
   sessionStorage.setItem('cnr_active_profile', profileId);
   loadProfileData(profileId);
   document.getElementById('app').style.display='flex';
+  updatePrivacyToggleIcon();
   renderAll();
   if(STATE.scriptUrl){ setTimeout(()=>syncAll(),300); }
   else { STATE.syncReady=true; setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),500); }
@@ -1220,7 +1237,7 @@ const AVATARCOLORS = [
 
 function avatarColor(i){return AVATARCOLORS[i % AVATARCOLORS.length]}
 function initials(name){return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
-function fmt(n){return '$'+Math.round(n).toLocaleString()}
+function fmt(n){return GLOBAL.privacyMode ? '$••••' : '$'+Math.round(n).toLocaleString()}
 function today(){const d=new Date();return d.toLocaleDateString('en-US',{month:'long',year:'numeric'})}
 function daysUntil(dateStr){if(!dateStr)return 9999;const d=safeDate(dateStr)-new Date();return Math.ceil(d/86400000)}
 
@@ -3873,6 +3890,7 @@ window.addEventListener('load',()=>{
     if(savedProfile && GLOBAL.profiles.find(p=>p.id===savedProfile)){
       loadProfileData(savedProfile);
       document.getElementById('app').style.display='flex';
+      updatePrivacyToggleIcon();
       renderAll();
       if(STATE.scriptUrl){ setTimeout(()=>syncAll(),300); }
       else { STATE.syncReady=true; setTimeout(()=>document.getElementById('setup-banner').classList.add('show'),500); }
