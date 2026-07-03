@@ -1249,13 +1249,13 @@ function daysUntil(dateStr){if(!dateStr)return 9999;const d=safeDate(dateStr)-ne
 //   - URL length limits
 //   - GET caching by Google CDN
 //   - Encoding issues with complex objects
-async function apiCall(action, payload={}){
+async function apiCall(action, payload={}, _attempt=1){
   if(!STATE.scriptUrl) return null;
   // Use manual AbortController instead of AbortSignal.timeout()
   // — AbortSignal.timeout() is not supported on all iPhone/Safari versions
   // and causes "cannot be cloned" errors in some WebViews
   const controller = new AbortController();
-  const timeoutId  = setTimeout(()=>controller.abort(), 12000);
+  const timeoutId  = setTimeout(()=>controller.abort(), 20000);
   try{
     const res = await fetch(STATE.scriptUrl, {
       method:'POST',
@@ -1264,15 +1264,26 @@ async function apiCall(action, payload={}){
       signal: controller.signal
     });
     clearTimeout(timeoutId);
-    if(!res.ok) return null;
+    if(!res.ok){
+      if(_attempt < 2){
+        await new Promise(r=>setTimeout(r, 1200));
+        return apiCall(action, payload, _attempt+1);
+      }
+      return null;
+    }
     const text = await res.text();
     return JSON.parse(text);
   } catch(e){
     clearTimeout(timeoutId);
     if(e.name === 'AbortError'){
-      console.warn('apiCall timed out after 12s');
+      console.warn('apiCall timed out after 20s (attempt '+_attempt+')');
     } else {
-      console.warn('apiCall failed:', e.message);
+      console.warn('apiCall failed (attempt '+_attempt+'):', e.message);
+    }
+    // Retry once automatically on timeout/network error before surfacing failure
+    if(_attempt < 2){
+      await new Promise(r=>setTimeout(r, 1200));
+      return apiCall(action, payload, _attempt+1);
     }
     return null;
   }
@@ -1288,11 +1299,11 @@ async function syncAll(){
     if(STATE.profileId !== pid){ setSyncStatus('ok'); return; }
     if(res && res.success){
       const dirty = getDirty();
-      const pushPromises = [];
+      const pushJobs = [];
       for(const k of DATA_KEYS){
         if(res[k]===undefined||res[k]===null) continue;
         if(dirty.includes(k)){
-          pushPromises.push(apiCall('setAll',{profileId:pid, sheet:k, rows:STATE[k]}));
+          pushJobs.push({sheet:k, rows:STATE[k]});
         } else if(res[k].length > 0){
           // Only write to STATE if still on the same profile
           if(STATE.profileId !== pid) break;
@@ -1301,10 +1312,15 @@ async function syncAll(){
           if(k==='incomes') normaliseIncomes();
           if(k==='expenses') normaliseExpenses();
         } else if(STATE[k].length > 0){
-          pushPromises.push(apiCall('setAll',{profileId:pid, sheet:k, rows:STATE[k]}));
+          pushJobs.push({sheet:k, rows:STATE[k]});
         }
       }
-      if(pushPromises.length > 0) await Promise.all(pushPromises);
+      // Push sequentially — GAS Web Apps handle one request at a time much more
+      // reliably than several simultaneous ones against the same spreadsheet.
+      for(const job of pushJobs){
+        if(STATE.profileId !== pid) break;
+        await apiCall('setAll', {profileId:pid, sheet:job.sheet, rows:job.rows});
+      }
       // Final profile check before marking sync complete
       if(STATE.profileId !== pid){ setSyncStatus('ok'); return; }
       clearDirty();
