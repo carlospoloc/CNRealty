@@ -887,16 +887,31 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
         <div id="faceid-settings-status" style="font-size:11px;margin-top:8px;min-height:14px;color:var(--muted)"></div>
       </div>
 
+      <!-- Session Timeout -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:10px">⏱ Session Timeout</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">How long you stay logged in before the app asks for your password again.</div>
+        <select id="settings-session-timeout" onchange="setSessionTimeout(this.value)" style="width:100%;padding:9px 12px;background:var(--navy4);border:0.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;font-family:'Lato',sans-serif;outline:none">
+          <option value="0.25">15 minutes</option>
+          <option value="1">1 hour</option>
+          <option value="4">4 hours</option>
+          <option value="8">8 hours (default)</option>
+          <option value="24">24 hours</option>
+          <option value="168">7 days</option>
+        </select>
+      </div>
+
       <!-- App info -->
       <div class="card">
         <div class="card-title" style="margin-bottom:10px">ℹ App Info</div>
         <div class="row"><span class="rl">Version</span><span class="rv">2.0</span></div>
         <div class="row"><span class="rl">Brand</span><span class="rv v-gold">Coronado Nova Realty</span></div>
-        <div class="row"><span class="rl">Session</span><span class="rv v-green">Active (8h)</span></div>
+        <div class="row"><span class="rl">Session</span><span class="rv v-green" id="settings-session-label">Active (8h)</span></div>
         <button onclick="lockApp()" style="width:100%;margin-top:12px;padding:10px;background:transparent;border:0.5px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">🔒 Lock App</button>
       <button onclick="showScreen('about',null)" style="width:100%;margin-top:8px;padding:10px;background:rgba(201,168,76,0.06);border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">♛ About Coronado Nova</button>
       </div>
     </div>
+
 
 
     <!-- ABOUT -->
@@ -3617,6 +3632,7 @@ function openSettings(){
   document.getElementById('st-ins').textContent      = STATE.insurance.length + ' records';
   document.getElementById('settings-status').textContent = '';
   document.getElementById('pw-status').textContent = '';
+  updateSessionLabel();
   updateFaceIdSettingsUI();
   showScreen('settings', null);
 }
@@ -3786,11 +3802,31 @@ async function changePassword(){
 }
 
 // ── Session ────────────────────────────────────────────────────────────────────
-const SESSION_HOURS = 8;
+function getSessionHours(){
+  return parseFloat(localStorage.getItem('cnr_session_hours') || '8');
+}
+
+function setSessionTimeout(hours){
+  localStorage.setItem('cnr_session_hours', hours);
+  updateSessionLabel();
+}
+
+function updateSessionLabel(){
+  const h = getSessionHours();
+  const sel = document.getElementById('settings-session-timeout');
+  if(sel) sel.value = String(h);
+  const label = document.getElementById('settings-session-label');
+  if(label){
+    const text = h < 1 ? `Active (${Math.round(h*60)}m)`
+               : h >= 24 ? `Active (${Math.round(h/24)}d)`
+               : `Active (${h}h)`;
+    label.textContent = text;
+  }
+}
 
 function isUnlocked(){
   const t = parseInt(localStorage.getItem('cnr_unlock_ts')||'0');
-  return Date.now() - t < SESSION_HOURS * 3600000;
+  return Date.now() - t < getSessionHours() * 3600000;
 }
 
 function lockApp(){
@@ -3883,7 +3919,7 @@ function buildToggleField(id, label, subLabel, isChecked){
 // PASSWORD PROTECTION — legacy block removed, see new centralized version above
 // ══════════════════════════════════════════════
 
-// ── Session ── (SESSION_HOURS, isUnlocked, lockApp, unlockApp defined above)
+// ── Session ── (getSessionHours, isUnlocked, lockApp, unlockApp defined above)
 
 // failCount / lockUntil already declared above
 // submitLogin already declared above (async, hash-based)
