@@ -876,8 +876,7 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
         <div class="row"><span class="rl">Maintenance</span><span class="rv v-blue" id="st-maint">—</span></div>
         <div class="row"><span class="rl">Insurance</span><span class="rv v-blue" id="st-ins">—</span></div>
         <div class="row"><span class="rl">Contacts</span><span class="rv v-blue" id="st-contacts">—</span></div>
-        <button onclick="showScreen('contacts',null)" style="width:100%;margin-top:12px;padding:10px;background:rgba(201,168,76,0.06);border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">📇 Vendor Contacts</button>
-        <button onclick="syncAll()" style="width:100%;margin-top:8px;padding:10px;background:transparent;border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">↻ Force Full Sync</button>
+        <button onclick="syncAll()" style="width:100%;margin-top:12px;padding:10px;background:transparent;border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">↻ Force Full Sync</button>
         <button onclick="repairExpensesSchema()" style="width:100%;margin-top:8px;padding:10px;background:transparent;border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">🔧 Repair Expenses Sheet Columns</button>
         <div id="repair-status" style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center"></div>
         <button onclick="switchProfile()" style="width:100%;margin-top:8px;padding:10px;background:rgba(232,201,122,0.08);border:0.5px solid rgba(232,201,122,0.3);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">👤 Switch Profile — <span id="settings-profile-name" style="font-style:italic"></span></button>
@@ -1054,6 +1053,7 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
     <button class="nav-btn" onclick="showScreen('tenants',this)"><span class="nav-icon">♟</span>Tenants<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('finance',this)"><span class="nav-icon">◈</span>Finance<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="showScreen('reminders',this)"><span class="nav-icon">🔔</span>Remind<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="showScreen('contacts',this)"><span class="nav-icon">📇</span>Contacts<div class="nav-dot"></div></button>
   </div>
 </div><!-- /app -->
 
