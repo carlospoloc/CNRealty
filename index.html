@@ -736,6 +736,7 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
         <div><div class="page-title">Maintenance</div><div class="page-sub" id="maint-sub">0 open requests</div></div>
         <button class="page-add" onclick="openModal('maintenance')">+ Add</button>
       </div>
+      <button onclick="showScreen('contacts',null)" style="width:100%;margin-bottom:10px;padding:9px;border:0.5px solid var(--border2);border-radius:8px;background:rgba(201,168,76,0.06);color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">📇 Vendor Contacts — plumbers, cleaners, operators →</button>
       <div class="filter-row">
         <div class="chip active" onclick="filterMaint('all',this)">All</div>
         <div class="chip" onclick="filterMaint('Urgent',this)">Urgent</div>
@@ -760,6 +761,26 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
       </div>
       <div id="ins-list"></div>
       <button class="add-btn" onclick="openModal('insurance')">+ Add policy</button>
+    </div>
+
+    <!-- CONTACTS (vendors / operating people) -->
+    <div class="screen" id="screen-contacts">
+      <div class="page-head">
+        <div><div class="page-title">Contacts</div><div class="page-sub" id="contacts-sub">0 contacts</div></div>
+        <button class="page-add" onclick="openModal('contact')">+ Add</button>
+      </div>
+      <div class="filter-row">
+        <div class="chip active" onclick="filterContacts('all',this)">All</div>
+        <div class="chip" onclick="filterContacts('Maintenance',this)">Maintenance</div>
+        <div class="chip" onclick="filterContacts('Cleaning',this)">Cleaning</div>
+        <div class="chip" onclick="filterContacts('Plumbing',this)">Plumbing</div>
+        <div class="chip" onclick="filterContacts('Electrical',this)">Electrical</div>
+        <div class="chip" onclick="filterContacts('HVAC',this)">HVAC</div>
+        <div class="chip" onclick="filterContacts('Handyman',this)">Handyman</div>
+        <div class="chip" onclick="filterContacts('Other',this)">Other</div>
+      </div>
+      <div id="contacts-list"></div>
+      <button class="add-btn" onclick="openModal('contact')">+ Add contact</button>
     </div>
 
 
@@ -854,7 +875,9 @@ html,body{height:100%;height:100dvh;background:var(--navy);font-family:'Lato',sa
         <div class="row"><span class="rl">Expenses</span><span class="rv v-blue" id="st-expenses">—</span></div>
         <div class="row"><span class="rl">Maintenance</span><span class="rv v-blue" id="st-maint">—</span></div>
         <div class="row"><span class="rl">Insurance</span><span class="rv v-blue" id="st-ins">—</span></div>
-        <button onclick="syncAll()" style="width:100%;margin-top:12px;padding:10px;background:transparent;border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">↻ Force Full Sync</button>
+        <div class="row"><span class="rl">Contacts</span><span class="rv v-blue" id="st-contacts">—</span></div>
+        <button onclick="showScreen('contacts',null)" style="width:100%;margin-top:12px;padding:10px;background:rgba(201,168,76,0.06);border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">📇 Vendor Contacts</button>
+        <button onclick="syncAll()" style="width:100%;margin-top:8px;padding:10px;background:transparent;border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">↻ Force Full Sync</button>
         <button onclick="repairExpensesSchema()" style="width:100%;margin-top:8px;padding:10px;background:transparent;border:0.5px solid var(--border2);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.5px">🔧 Repair Expenses Sheet Columns</button>
         <div id="repair-status" style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center"></div>
         <button onclick="switchProfile()" style="width:100%;margin-top:8px;padding:10px;background:rgba(232,201,122,0.08);border:0.5px solid rgba(232,201,122,0.3);border-radius:8px;color:var(--gold2);font-size:12px;cursor:pointer;font-family:'Lato',sans-serif">👤 Switch Profile — <span id="settings-profile-name" style="font-style:italic"></span></button>
@@ -1074,6 +1097,7 @@ const STATE = {
   leads:       [],
   incomes:     [],
   reminders:   [],
+  contacts:    [],
 };
 
 // Ensure at least one profile exists locally on first launch
@@ -1088,7 +1112,7 @@ function saveProfiles(){
 }
 
 // ── Profile-aware storage keys ────────────────────────────────────────────────
-const DATA_KEYS = ['properties','tenants','expenses','maintenance','insurance','leads','incomes','reminders'];
+const DATA_KEYS = ['properties','tenants','expenses','maintenance','insurance','leads','incomes','reminders','contacts'];
 function storeKey(key){ const p=STATE.profileId; return (!p||p==='default')?`cnr_${key}`:`cnr_${p}_${key}`; }
 function save(key){localStorage.setItem(storeKey(key), JSON.stringify(STATE[key]))}
 function markDirty(key){ const dk=storeKey('dirty'); const d=JSON.parse(localStorage.getItem(dk)||'[]'); if(!d.includes(key)){d.push(key);localStorage.setItem(dk,JSON.stringify(d));} }
@@ -1381,7 +1405,8 @@ async function pushRow(sheet, row){
     property:'properties', tenant:'tenants', expense:'expenses',
     maintenance:'maintenance', insurance:'insurance', lead:'leads', income:'incomes',
     properties:'properties', tenants:'tenants', expenses:'expenses',
-    leads:'leads', incomes:'incomes', reminders:'reminders', reminder:'reminders'
+    leads:'leads', incomes:'incomes', reminders:'reminders', reminder:'reminders',
+    contact:'contacts', contacts:'contacts'
   };
   const key = SHEET_TO_KEY[sheet] || sheet;
   const rows = STATE[key] || [];
@@ -2394,6 +2419,51 @@ function switchFinTab(tab, el){
 // ══════════════════════════════════════════════
 // RENDER MAINTENANCE
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// RENDER CONTACTS (vendors / operating people)
+// ══════════════════════════════════════════════
+let CONTACT_FILTER = 'all';
+function renderContacts(){
+  const all = STATE.contacts || [];
+  const list = CONTACT_FILTER==='all' ? all : all.filter(c=>c.role===CONTACT_FILTER);
+  const sub = document.getElementById('contacts-sub');
+  if(sub) sub.textContent = all.length + ' contact' + (all.length===1?'':'s');
+
+  const el = document.getElementById('contacts-list');
+  if(!el) return;
+  if(list.length===0){
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📇</div><div class="empty-text">${all.length===0?'No contacts yet.<br/>Tap + Add to save a maintenance operator, cleaner, plumber, etc.':'No contacts in this category.'}</div></div>`;
+    return;
+  }
+  const sorted = [...list].sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  el.innerHTML = sorted.map(c=>{
+    return `<div class="card">
+      <div class="card-header">
+        <div><div class="card-title">${c.name||'—'}</div><div class="card-sub">${c.role||'Other'}</div></div>
+        <span class="badge b-gray">${c.role||'Other'}</span>
+      </div>
+      ${c.property?`<div class="row"><span class="rl">Property</span><span class="rv">${c.property}</span></div>`:''}
+      ${c.phone?`<div class="row"><span class="rl">Phone</span><span class="rv"><a href="tel:${c.phone}" style="color:var(--blue);text-decoration:none">${c.phone}</a></span></div>`:''}
+      ${c.email?`<div class="row"><span class="rl">Email</span><span class="rv"><a href="mailto:${c.email}" style="color:var(--blue);text-decoration:none">${c.email}</a></span></div>`:''}
+      ${c.notes?`<div class="row"><span class="rl">Notes</span><span class="rv" style="font-size:11px;text-align:right;max-width:200px">${c.notes}</span></div>`:''}
+      <div class="lead-actions" style="margin-top:8px">
+        ${c.phone?`<button class="lead-btn primary" onclick="window.location.href='tel:${c.phone}'">📞 Call</button>`:''}
+        ${c.phone?`<button class="lead-btn primary" onclick="window.open('https://wa.me/${(c.phone||'').replace(/[^0-9]/g,'')}','_blank')">💬 WhatsApp</button>`:''}
+      </div>
+      <div class="lead-actions" style="margin-top:6px">
+        <button class="lead-btn" onclick="openEditModal('contact','${c.id}')">✏ Edit</button>
+        <button class="lead-btn danger" onclick="deleteRecord('contact','${c.id}')">🗑 Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function filterContacts(role, el){
+  CONTACT_FILTER = role;
+  document.querySelectorAll('#screen-contacts .chip').forEach(c=>c.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderContacts();
+}
+
 function renderMaintenance(filter='all'){
   const list=STATE.maintenance.filter(m=>filter==='all'||m.status===filter);
   const open=STATE.maintenance.filter(m=>m.status!=='Resolved').length;
@@ -2526,6 +2596,7 @@ function renderAll(){
   renderInsurance();
   renderLeads();
   renderReminders();
+  renderContacts();
 }
 
 // ══════════════════════════════════════════════
@@ -3121,11 +3192,19 @@ const FIELDS = {
     {id:'premiumCycle',label:'Premium Cycle',type:'select',options:['Annual','Monthly']},
     {id:'expiry',label:'Expiry Date',type:'date'},
   ],
+  contact:[
+    {id:'name',label:'Name',type:'text',placeholder:'e.g. Miguel Torres'},
+    {id:'role',label:'Role / Category',type:'select',options:['Maintenance','Cleaning','Plumbing','Electrical','HVAC','Painting','Gardening / Landscaping','Pest Control','Locksmith','Handyman','Appliance Repair','Security','Legal','Other']},
+    {id:'phone',label:'Phone',type:'tel',placeholder:'+1 (555) 000-0000'},
+    {id:'email',label:'Email',type:'email',placeholder:'email@example.com'},
+    {id:'property',label:'Property (optional)',type:'select',options:()=>['— None / All —',...PROP_NAMES()]},
+    {id:'notes',label:'Notes',type:'textarea',placeholder:'Rates, availability, past work, etc.'},
+  ],
 };
 
 function openModal(type){
   currentModal=type;
-  const titles={property:'Add Property',tenant:'Add Tenant',expense:'Log Expense',maintenance:'Maintenance Request',insurance:'Add Insurance Policy'};
+  const titles={property:'Add Property',tenant:'Add Tenant',expense:'Log Expense',maintenance:'Maintenance Request',insurance:'Add Insurance Policy',contact:'Add Contact'};
   document.getElementById('modal-title').textContent=titles[type]||'Add';
   const fields=FIELDS[type]||[];
   document.getElementById('modal-fields').innerHTML=fields.map(f=>{
@@ -3185,7 +3264,8 @@ function saveModal(){
     income:'incomes',
     maintenance:'maintenance',
     insurance:'insurance',
-    reminder:'reminders'
+    reminder:'reminders',
+    contact:'contacts'
   };
   const key=keyMap[currentModal];
   if(!key){toast('Unknown type: '+currentModal);return;}
@@ -3208,7 +3288,8 @@ function saveModal(){
     income:'finance',
     maintenance:'maintenance',
     insurance:'insurance',
-    reminder:'reminders'
+    reminder:'reminders',
+    contact:'contacts'
   };
   const targetScreen=screenMap[currentModal];
   if(targetScreen){
@@ -3625,7 +3706,7 @@ function openEditModal(type, id){
     property:'properties', tenant:'tenants',
     expense:'expenses',    income:'incomes',
     maintenance:'maintenance', insurance:'insurance',
-    reminder:'reminders'
+    reminder:'reminders', contact:'contacts'
   };
   const key = KEY_MAP[type];
   const record = (STATE[key]||[]).find(r=>String(r.id)===String(id));
@@ -3635,7 +3716,7 @@ function openEditModal(type, id){
   const titles = {
     property:'Edit Property', tenant:'Edit Tenant',
     expense:'Edit Expense',   maintenance:'Edit Maintenance',
-    insurance:'Edit Insurance Policy'
+    insurance:'Edit Insurance Policy', contact:'Edit Contact'
   };
   document.getElementById('modal-title').textContent = titles[type]||'Edit';
 
@@ -3687,7 +3768,7 @@ function saveEditRecord(){
     property:'properties', tenant:'tenants',
     expense:'expenses',    income:'incomes',
     maintenance:'maintenance', insurance:'insurance',
-    reminder:'reminders'
+    reminder:'reminders', contact:'contacts'
   };
   const key = KEY_MAP[editingRecordType];
   if(!key){ toast('Unknown record type'); return; }
@@ -3728,7 +3809,8 @@ function saveEditRecord(){
   const screenMap = {
     property:'properties', tenant:'tenants',
     expense:'finance',     income:'finance',
-    maintenance:'maintenance', insurance:'insurance'
+    maintenance:'maintenance', insurance:'insurance',
+    contact:'contacts'
   };
   const targetScreen = screenMap[editingRecordType];
   if(targetScreen){
@@ -3743,7 +3825,7 @@ function deleteRecord(type, id){
     property:'properties', tenant:'tenants',
     expense:'expenses',    income:'incomes',
     maintenance:'maintenance', insurance:'insurance',
-    reminder:'reminders'
+    reminder:'reminders', contact:'contacts'
   };
   const key = KEY_MAP[type];
   if(!key){ toast('Unknown type'); return; }
@@ -3780,6 +3862,7 @@ function openSettings(){
   document.getElementById('st-expenses').textContent = STATE.expenses.length + ' records';
   document.getElementById('st-maint').textContent    = STATE.maintenance.length + ' records';
   document.getElementById('st-ins').textContent      = STATE.insurance.length + ' records';
+  document.getElementById('st-contacts').textContent = (STATE.contacts||[]).length + ' records';
   document.getElementById('settings-status').textContent = '';
   document.getElementById('pw-status').textContent = '';
   updateSessionLabel();
